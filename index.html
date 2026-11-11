@@ -1,0 +1,1189 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Self-Powered Vehicle Lab</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@500;700&display=swap">
+
+<style>
+/* Layout: a bright "engineering garage" for 9-year-olds. Sticky mission path on top; each mission is a stack of rounded workbench cards on a sky + graph-paper ground. Design 1 = teal, Design 2 = orange everywhere. */
+:root{
+  --sky:#e6f3ff; --grid:rgba(28,110,200,.08); --paper:#ffffff; --paper2:#f3f8fd; --ink:#16213a; --muted:#56627c; --line:#cddbeb;
+  --sun:#ffcb2f; --sunInk:#3a2a00; --d1:#0b97a3; --d2:#f2621f; --d1soft:#d3f1f3; --d2soft:#ffe3d5;
+  --thrust:#2f9e44; --resist:#d6336c; --grav:#7048e8; --up:#1c7ed6; --warn:#c25e00; --good:#2f9e44;
+  --floor1:#efe6d8; --floor2:#e6dac8; --water1:#9fd3f5; --water2:#6bb8ea; --wall:#dfe9f4; --skyScene:#cfe9ff;
+  --f-display:"Baloo 2", "Trebuchet MS", "Arial Rounded MT Bold", system-ui, sans-serif;
+  --f-body:"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --f-mono:"JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --sky:#0e1726; --grid:rgba(120,170,255,.06); --paper:#16213a; --paper2:#1c2945; --ink:#eaf1fb; --muted:#9fb0cc; --line:#2b3b5c;
+  --sun:#ffcb2f; --sunInk:#2a1f00; --d1:#2fc6d1; --d2:#ff8547; --d1soft:#123a43; --d2soft:#4a2414;
+  --thrust:#5bd178; --resist:#f06595; --grav:#9b80ff; --up:#4dabf7; --warn:#ffa94d; --good:#5bd178;
+  --floor1:#2c2a33; --floor2:#25232c; --water1:#1b4d73; --water2:#143a59; --wall:#1a2740; --skyScene:#1b3152; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --sky:#0e1726; --grid:rgba(120,170,255,.06); --paper:#16213a; --paper2:#1c2945; --ink:#eaf1fb; --muted:#9fb0cc; --line:#2b3b5c;
+  --sun:#ffcb2f; --sunInk:#2a1f00; --d1:#2fc6d1; --d2:#ff8547; --d1soft:#123a43; --d2soft:#4a2414;
+  --thrust:#5bd178; --resist:#f06595; --grav:#9b80ff; --up:#4dabf7; --warn:#ffa94d; --good:#5bd178;
+  --floor1:#2c2a33; --floor2:#25232c; --water1:#1b4d73; --water2:#143a59; --wall:#1a2740; --skyScene:#1b3152; color-scheme:dark }
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--sky);color:var(--ink);font-family:var(--f-body);font-size:15.5px;line-height:1.5;
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:28px 28px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--paper)}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0;line-height:1.1}
+.wrap{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:6;background:var(--paper);border-bottom:2px solid var(--line)}
+.top .wrap{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding-block:8px}
+.brand{display:flex;align-items:center;gap:10px;margin-right:auto}
+.brand svg{width:44px;height:44px;flex:none}
+.brand h1{font-size:24px;font-weight:800;letter-spacing:-.01em}
+.brand small{display:block;font:700 11.5px var(--f-body);color:var(--muted);text-transform:uppercase;letter-spacing:.09em}
+.path{display:flex;align-items:center;gap:0;flex-wrap:wrap}
+.step{font:700 15px var(--f-display);border:0;background:none;color:var(--muted);padding:6px 8px;cursor:pointer;display:flex;gap:7px;align-items:center;border-radius:12px}
+.step .dot{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--paper2);border:2px solid var(--line);font:800 14px var(--f-display);color:var(--ink)}
+.step.done .dot{background:var(--good);border-color:var(--good);color:#fff}
+.step[aria-selected="true"]{color:var(--ink);background:var(--paper2)}
+.step[aria-selected="true"] .dot{background:var(--sun);border-color:var(--sun);color:var(--sunInk)}
+.path .link{width:18px;height:3px;background:var(--line);border-radius:2px}
+:focus-visible{outline:3px solid var(--up);outline-offset:2px}
+
+main{padding-block:22px 70px}
+.panel{display:grid;gap:20px}
+.card{background:var(--paper);border:2px solid var(--line);border-radius:20px;padding:20px;min-width:0}
+.mhead{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
+.badge{font:800 13px var(--f-display);text-transform:uppercase;letter-spacing:.08em;background:var(--sun);color:var(--sunInk);padding:3px 11px;border-radius:999px}
+.card h2{font-size:26px;font-weight:800}
+.ref{font:700 12px var(--f-body);color:var(--muted);border:1.5px solid var(--line);border-radius:999px;padding:2px 9px}
+.lead{margin:2px 0 14px;color:var(--muted);max-width:68ch}
+
+.hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:20px;align-items:center}
+.hero h2{font-size:clamp(28px,4.4vw,44px);font-weight:800;letter-spacing:-.015em}
+.hero h2 em{font-style:normal;background:var(--sun);color:var(--sunInk);padding:0 8px;border-radius:10px}
+.hero p{color:var(--muted);font-size:16.5px;max-width:46ch}
+.scene{border-radius:16px;overflow:hidden;border:2px solid var(--line);background:var(--skyScene)}
+.scene svg{display:block;width:100%;height:auto}
+@media (max-width:820px){ .hero{grid-template-columns:1fr} }
+
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:18px}
+.vcards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+@media (max-width:560px){ .vcards{grid-template-columns:1fr} }
+.vcard{border:3px solid var(--line);background:var(--paper2);color:var(--ink);border-radius:18px;padding:12px;cursor:pointer;display:grid;justify-items:center;gap:2px;font:800 21px var(--f-display);transition:transform .15s}
+.vcard svg{width:100%;max-width:170px;height:74px}
+.vcard span{font:400 13px var(--f-body);color:var(--muted)}
+.vcard:hover{transform:translateY(-2px)}
+.vcard[aria-pressed="true"]{border-color:var(--ink);background:var(--sun);color:var(--sunInk)}
+.vcard[aria-pressed="true"] span{color:var(--sunInk)}
+.ecards{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.ecard{border:2.5px solid var(--line);background:var(--paper2);color:var(--ink);border-radius:14px;padding:10px 12px;cursor:pointer;text-align:left;display:grid;gap:2px;font:800 16px var(--f-display)}
+.ecard span{font:400 12.5px var(--f-body);color:var(--muted)}
+.ecard[aria-pressed="true"]{border-color:var(--ink);background:var(--sun);color:var(--sunInk)}
+.ecard[aria-pressed="true"] span{color:var(--sunInk)}
+.chip{border:2px solid var(--line);background:var(--paper2);color:var(--ink);border-radius:999px;padding:6px 14px;cursor:pointer;font:800 15px var(--f-display)}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.opts{display:flex;gap:8px;flex-wrap:wrap}
+
+label.f{display:grid;gap:4px;font-size:13px;color:var(--muted);font-weight:700;min-width:0;align-content:start}
+label.f input,label.f select{font:600 16px var(--f-body);color:var(--ink);background:var(--paper2);border:2px solid var(--line);border-radius:10px;padding:7px 10px;width:100%;min-width:0}
+label.f input[type=number]{font-family:var(--f-mono);font-size:15px}
+.unit{font-weight:400}
+.fields{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-top:12px}
+.sub{font:800 13px var(--f-body);text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:18px 0 8px}
+
+.design{border:3px solid var(--line);border-radius:18px;padding:14px;min-width:0;background:var(--paper)}
+.design.d1{border-color:var(--d1)} .design.d2{border-color:var(--d2)}
+.dtag{display:inline-flex;align-items:center;gap:6px;font:800 14px var(--f-display);padding:2px 11px;border-radius:999px;color:#fff;white-space:nowrap}
+.dtag.d1{background:var(--d1)} .dtag.d2{background:var(--d2)}
+:root[data-theme="dark"] .dtag{color:#0e1726}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .dtag{color:#0e1726} }
+.namerow{display:flex;gap:10px;align-items:end;flex-wrap:wrap;margin-top:10px}
+.namerow label.f{flex:1 1 150px}
+.swatches{display:flex;gap:6px;flex-wrap:wrap}
+.sw{width:28px;height:28px;border-radius:50%;border:3px solid var(--paper);box-shadow:0 0 0 2px var(--line);cursor:pointer;padding:0}
+.sw[aria-pressed="true"]{box-shadow:0 0 0 3px var(--ink)}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.work{font-family:var(--f-mono);font-size:14px;background:var(--paper2);border-radius:12px;padding:9px 12px;margin-top:10px;border:2px dashed var(--line);overflow-wrap:anywhere}
+.work b{background:var(--sun);color:var(--sunInk);padding:0 5px;border-radius:5px}
+.note{font-size:13.5px;color:var(--muted)}
+.warnbox{border:2px solid var(--warn);background:var(--paper2);padding:9px 13px;border-radius:12px;font-size:14.5px}
+.checks{display:grid;gap:6px;margin-top:12px}
+.checks div{display:flex;gap:8px;align-items:center;font-weight:700;font-size:14.5px}
+.checks svg{width:22px;height:22px;flex:none}
+.svgbox{overflow-x:auto;min-width:0}
+.svgbox svg{display:block;max-width:100%;height:auto}
+.btn{font:800 17px var(--f-display);border:0;background:var(--ink);color:var(--paper);padding:10px 20px;border-radius:14px;cursor:pointer;box-shadow:0 4px 0 rgba(0,0,0,.25)}
+.btn:active{transform:translateY(2px);box-shadow:0 2px 0 rgba(0,0,0,.25)}
+.btn.go{background:var(--good);color:#fff;font-size:20px;padding:12px 26px}
+:root[data-theme="dark"] .btn.go{color:#0e1726}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .btn.go{color:#0e1726} }
+.btn.ghost{background:var(--paper2);color:var(--ink);border:2px solid var(--line);box-shadow:none}
+.btn.ghost[aria-pressed="true"]{border-color:var(--ink)}
+.btn.sm{padding:5px 12px;font-size:14.5px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+table.t{border-collapse:collapse;width:100%;font-size:14.5px}
+table.t th,table.t td{border:1.5px solid var(--line);padding:7px 9px;text-align:left;vertical-align:top}
+table.t thead th{background:var(--paper2);font-weight:700}
+table.t tbody th{white-space:nowrap}
+table.t td.n{font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.tscroll{overflow-x:auto;min-width:0}
+.cell input{font:500 14px var(--f-mono);color:var(--ink);background:var(--paper2);border:2px solid var(--line);border-radius:8px;padding:5px 7px;width:92px}
+.cell input.obs{width:100%;min-width:170px;font-family:var(--f-body)}
+.mass{display:grid;gap:3px;font-size:14px}
+.mass div{display:flex;justify-content:space-between;gap:10px;border-bottom:1.5px dotted var(--line);padding:3px 0}
+.mass div:last-child{border-bottom:0;font-weight:700}
+.toggle{display:flex;gap:9px;align-items:center;font-weight:700;cursor:pointer}
+.toggle input{width:22px;height:22px;flex:none}
+
+.racebox{position:relative}
+.lane{position:relative;border-radius:16px;overflow:hidden;border:2px solid var(--line);margin-top:10px}
+.lane svg{display:block;width:100%;height:auto}
+.overlay{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none}
+.count{font:800 clamp(56px,12vw,120px) var(--f-display);color:var(--ink);text-shadow:0 4px 0 var(--paper);animation:pop .5s ease-out}
+@keyframes pop{from{transform:scale(1.8);opacity:0}to{transform:scale(1);opacity:1}}
+.gauges{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:10px;margin-top:12px}
+.gauge{border-radius:14px;padding:8px 14px;display:flex;gap:16px;flex-wrap:wrap;align-items:baseline;min-height:50px}
+.gauge.d1{background:var(--d1soft)} .gauge.d2{background:var(--d2soft)}
+.gauge .lbl{font:800 15px var(--f-display)}
+.gauge .v{font:800 24px var(--f-display);font-variant-numeric:tabular-nums}
+.gauge .v small{font:600 12px var(--f-body);color:var(--muted);margin-left:2px}
+.winner{margin-top:12px;border-radius:16px;padding:12px 16px;background:var(--sun);color:var(--sunInk);display:flex;gap:12px;align-items:center;font:800 19px var(--f-display);animation:pop .4s ease-out}
+.winner svg{width:40px;height:40px;flex:none}
+.winner span{font:400 14.5px var(--f-body)}
+.confetti{position:fixed;top:-12px;width:10px;height:14px;border-radius:2px;z-index:30;pointer-events:none;animation:fall 1.8s linear forwards}
+@keyframes fall{to{transform:translateY(105vh) rotate(720deg)}}
+.trialpick{display:flex;gap:6px;flex-wrap:wrap}
+
+.trophies{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:12px}
+.trophy{border:2px solid var(--line);border-radius:18px;padding:14px;display:flex;gap:12px;align-items:center;background:var(--paper2)}
+.trophy svg{width:52px;height:52px;flex:none}
+.trophy .k{font:800 12px var(--f-body);text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.trophy .w{font:800 24px var(--f-display);line-height:1.1}
+
+.rsec{display:grid;gap:16px}
+.rsec h3{font-size:23px;font-weight:800;display:flex;gap:10px;align-items:center}
+.rsec h3 .num{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:var(--sun);color:var(--sunInk);font-size:18px;flex:none}
+.q{display:grid;gap:6px}
+.qh{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap}
+.qh p{margin:0;font-weight:700;max-width:75ch}
+.marks{font:500 12px var(--f-mono);color:var(--muted);white-space:nowrap}
+.ans{background:var(--paper2);border:2px solid var(--line);border-radius:14px;padding:10px 13px;min-width:0}
+.ans[contenteditable="true"]{cursor:text}
+.ans[contenteditable="true"]:hover{border-color:var(--up)}
+.ans p{margin:0 0 6px} .ans p:last-child{margin:0}
+.ans ul{margin:4px 0;padding-left:20px}
+.qtools{display:flex;gap:6px;align-items:center}
+.edited{font-size:12px;color:var(--warn);font-weight:700}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:9px 18px;border-radius:999px;font-weight:700;z-index:20}
+.fcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px;margin-top:10px}
+.fcard{display:flex;gap:8px;align-items:flex-start;font-size:13.5px;background:var(--paper2);border-radius:12px;padding:8px 10px}
+.fcard svg{width:26px;height:26px;flex:none;margin-top:1px}
+.fcard b{display:block;font-family:var(--f-display);font-size:15px}
+.chk{display:grid;gap:4px;margin-top:12px}
+.chk label{font-weight:700;font-size:14px}
+.chkrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.chkrow input{font:600 15px var(--f-mono);color:var(--ink);background:var(--paper2);border:2px solid var(--line);border-radius:10px;padding:6px 10px;width:130px}
+.res{display:flex;gap:6px;align-items:center;font-weight:700;font-size:14px;min-height:22px}
+.res svg{width:20px;height:20px;flex:none}
+.yes{color:var(--good)} .no{color:var(--warn)}
+.fq{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px}
+.numb{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--sun);color:var(--sunInk);font:800 13px var(--f-display);margin-right:6px}
+.wave{animation:wave 3s linear infinite}
+@keyframes wave{to{transform:translateX(-40px)}}
+@media (max-width:640px){ .top{position:static} .brand h1{font-size:20px} .step{font-size:13.5px;padding:4px 5px} .path .link{width:8px} .card{padding:15px;border-radius:16px} .card h2{font-size:22px} }
+@media (prefers-reduced-motion: reduce){ .wave,.count,.winner,.confetti{animation:none!important} .vcard{transition:none} }
+</style>
+<style>body{margin:0} img{max-width:100%}</style>
+</head>
+<body>
+
+
+<header class="top"><div class="wrap">
+  <div class="brand">
+    <svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="22" fill="var(--sun)"/><rect x="9" y="19" width="30" height="11" rx="5" fill="#16213a"/><circle cx="16" cy="32" r="4.5" fill="#16213a" stroke="var(--sun)" stroke-width="2"/><circle cx="32" cy="32" r="4.5" fill="#16213a" stroke="var(--sun)" stroke-width="2"/><path d="M14 19 L24 10 L28 19" fill="none" stroke="#16213a" stroke-width="3" stroke-linejoin="round"/></svg>
+    <div><h1>Self-Powered Vehicle Lab</h1><small>Grade 4 PBL · Science &amp; Math</small></div>
+  </div>
+  <nav class="path" role="tablist" aria-label="Missions">
+    <button class="step" role="tab" id="tab-build" data-tab="build" aria-selected="true"><span class="dot">1</span>Build</button><span class="link"></span>
+    <button class="step" role="tab" id="tab-test" data-tab="test" aria-selected="false"><span class="dot">2</span>Race</button><span class="link"></span>
+    <button class="step" role="tab" id="tab-results" data-tab="results" aria-selected="false"><span class="dot">3</span>Check my math</button>
+  </nav>
+</div></header>
+
+<main class="wrap">
+<section class="panel" id="p-build" role="tabpanel" aria-labelledby="tab-build">
+  <div class="card hero">
+    <div>
+      <span class="badge">Your mission</span>
+      <h2 style="margin-top:10px">Build a vehicle that moves with <em>no fuel</em> and no batteries.</h2>
+      <p>Design two versions that are the same except for one part. Race them, record the data, and work out which design is better.</p>
+    </div>
+    <div class="scene" id="heroScene"></div>
+  </div>
+
+  <div class="card">
+    <div class="mhead"><span class="badge">Step 1</span><h2>Pick your ride</h2><span class="ref">Report Section 1</span></div>
+    <div class="vcards" id="vehOpts"></div>
+    <div class="sub">Pick your power</div>
+    <div class="ecards" id="energyOpts"></div>
+    <div class="fields" id="energyFields">
+      <label class="f" data-show="balloon">Balloon size when blown up <span class="unit">(cm across)</span><input id="in-balloonD" type="number" min="10" max="40" step="1" data-k="balloonD"></label>
+      <label class="f" data-show="rubber">Number of rubber bands<input id="in-bands" type="number" min="1" max="4" step="1" data-k="bands"></label>
+      <label class="f" data-show="rubber">Number of winding turns<input id="in-turns" type="number" min="10" max="200" step="5" data-k="turns"></label>
+      <label class="f" data-show="wind">Fan wind speed <span class="unit">(m/s, at the fan)</span><input id="in-wind" type="number" min="1" max="6" step="0.5" data-k="wind"></label>
+      <label class="f" data-show="solar">Sunlight<select id="in-sun" data-k="sun"></select></label>
+      <label class="f" data-show="plane">Hand launch speed <span class="unit">(m/s)</span><input id="in-launch" type="number" min="2" max="8" step="0.5" data-k="launch"></label>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="mhead"><span class="badge">Step 2</span><h2>Change one thing</h2><span class="ref">Section 5 · Part 1</span></div>
+    <p class="lead">Which part will be different in your two designs? Give it a basic 2D shape, measure it in centimetres, then name and paint each design.</p>
+    <div class="opts" id="partOpts"></div>
+    <div class="grid2" style="margin-top:14px" id="designEditors"></div>
+    <div id="areaDiff" style="margin-top:14px"></div>
+    <div class="checks" id="fairChecks"></div>
+  </div>
+
+  <div class="card">
+    <div class="mhead"><span class="badge">Step 3</span><h2>Keep everything else the same</h2><span class="ref">Control variables</span></div>
+    <p class="lead">These settings are the same for Design 1 and Design 2. That is what makes it a fair test.</p>
+    <div class="fields">
+      <label class="f">Body length <span class="unit">(cm)</span><input id="in-L" type="number" min="10" max="60" step="1" data-k="body.L"></label>
+      <label class="f">Body width <span class="unit">(cm)</span><input id="in-W" type="number" min="2" max="30" step="1" data-k="body.W"></label>
+      <label class="f">Body height <span class="unit">(cm)</span><input id="in-H" type="number" min="2" max="20" step="1" data-k="body.H"></label>
+      <label class="f">Building material<select id="in-mat" data-k="material"></select></label>
+      <label class="f" data-show="car">Wheels<select id="in-wheels" data-k="wheels"></select></label>
+      <label class="f" data-show="car">Axles<select id="in-axle" data-k="axle"></select></label>
+      <label class="f" data-show="car">Test floor<select id="in-surface" data-k="surface"></select></label>
+      <label class="f" data-show="boat">Water<select id="in-water" data-k="water"></select></label>
+      <label class="f">Test distance <span class="unit">(m, same every trial)</span><input id="in-track" type="number" min="0.5" max="15" step="0.5" data-k="track"></label>
+      <label class="f">Extra load, e.g. clay <span class="unit">(g)</span><input id="in-extra" type="number" min="0" max="200" step="1" data-k="extra"></label>
+    </div>
+    <div class="tip" style="margin-top:14px"><div><b>Distance is a control variable.</b> Both designs race the same distance to a finish line, and you measure the time each one takes. A shorter distance makes sure both designs can reach the finish.</div><button class="btn ghost sm" type="button" id="suggestBtn" style="flex:none">Suggest a distance</button></div>
+    <div id="fixedParts"></div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <div class="mhead"><span class="badge">Science</span><h2>Label the forces</h2><span class="ref">Section 2 · Q1–Q2</span></div>
+      <div class="svgbox" id="forceDiagram"></div>
+      <div id="forceQuiz"></div>
+    </div>
+    <div class="card">
+      <div class="mhead"><span class="badge">Math</span><h2>Weigh it</h2><span class="ref">Section 5 · Part 3</span></div>
+      <p class="lead">Each design is on the kitchen scale. Your report needs the mass in kilograms.</p>
+      <div class="grid2" id="massBox"></div>
+    </div>
+  </div>
+  <div class="row" style="justify-content:flex-end"><button class="btn go" type="button" data-tab="test">Go to the race</button></div>
+</section>
+
+<section class="panel" id="p-test" role="tabpanel" aria-labelledby="tab-test" hidden>
+  <div class="card">
+    <div class="mhead"><span class="badge">Race day</span><h2 id="raceTitle">Test track</h2><span class="ref">Section 5 · Part 3</span></div>
+    <p class="lead" id="trackLead"></p>
+    <div class="row">
+      <button class="btn go" id="runBtn" type="button">Start 3 new trials</button>
+      <div class="trialpick" id="trialPick"></div>
+      <label class="f" style="display:flex;align-items:center;gap:6px">Replay speed
+        <select id="in-pb" style="width:auto"><option value="1">1×</option><option value="2" selected>2×</option><option value="4">4×</option></select></label>
+    </div>
+    <div class="racebox" id="track"></div>
+    <div class="gauges" id="gauges"></div>
+    <div id="winner"></div>
+    <div id="dnf" style="margin-top:12px"></div>
+  </div>
+
+  <div class="card">
+    <div class="mhead"><span class="badge">Record it</span><h2>Data tables</h2><span class="ref">Section 5 · Part 3 · Q1–Q2</span></div>
+    <div class="row" style="margin:6px 0 10px">
+      <label class="toggle"><input type="checkbox" id="realToggle"> I tested my real model. Let me type my own measurements.</label>
+    </div>
+    <p class="note" id="realNote"></p>
+    <div class="grid2" id="massInputs"></div>
+    <div class="grid2" style="margin-top:14px" id="trialTables"></div>
+  </div>
+  <div class="row" style="justify-content:flex-end"><button class="btn go" type="button" data-tab="results">Check my math</button></div>
+</section>
+
+<section class="panel" id="p-results" role="tabpanel" aria-labelledby="tab-results" hidden>
+  <div class="card">
+    <div class="mhead"><span class="badge">Math</span><h2>Check my math</h2><span class="ref">Section 6 · Q1</span></div>
+    <p class="lead">Work out each answer on paper first, using your data table. Then type it here and press Check. The lab tells you if you are right, but it will not tell you the answer.</p>
+    <div class="grid2" id="mathChecks"></div>
+  </div>
+  <div class="card">
+    <div class="mhead"><span class="badge">Graphs</span><h2>Graph builder</h2><span class="ref">Section 6 · Q3–Q4</span></div>
+    <p class="lead">Type your own numbers to see your bar graphs, then copy them onto the grids in your report.</p>
+    <div class="grid2">
+      <div><div class="sub" style="margin-top:0">Greatest distance traveled in 10 seconds</div><div class="fields" id="gbDistIn" style="margin-top:0"></div><div class="svgbox" id="gbDist" style="margin-top:10px"></div></div>
+      <div><div class="sub" style="margin-top:0">Power used</div><div class="fields" id="gbPowIn" style="margin-top:0"></div><div class="svgbox" id="gbPow" style="margin-top:10px"></div></div>
+    </div>
+  </div>
+</section>
+</main>
+
+<script>
+// ===== Physics model (classroom scale) =====
+const G = 9.81, RA = 1.2, RW = 1000;
+const MATERIALS = {
+  cardboard: { name: 'Cardboard', g: 0.05 },
+  foam: { name: 'Foam board', g: 0.025 },
+  plastic: { name: 'Recycled plastic bottle', g: 0.035 },
+  balsa: { name: 'Thin balsa wood', g: 0.03 }
+};
+const WHEELS = {
+  caps: { name: 'Bottle caps', g: 3, mu: 0.02 },
+  lids: { name: 'Jar lids', g: 6, mu: 0.017 },
+  cds: { name: 'Old CDs', g: 15, mu: 0.01 }
+};
+const AXLES = {
+  straw: { name: 'Skewer axle inside a straw', mu: 0.016 },
+  direct: { name: 'Skewer pushed through the cardboard', mu: 0.08 }
+};
+const SURFACES = {
+  tile: { name: 'Smooth tile floor', k: 1 },
+  wood: { name: 'Wooden floor', k: 1.3 },
+  carpet: { name: 'Carpet', k: 2.2 }
+};
+const WATERS = { calm: { name: 'Calm water (pool / tray)', k: 1 }, ripples: { name: 'Water with small ripples', k: 1.35 } };
+const SUN = { bright: { name: 'Bright sunshine', w: 1000 }, hazy: { name: 'Hazy sun', w: 650 }, cloudy: { name: 'Cloudy', w: 300 } };
+
+const ENERGY = {
+  balloon: { name: 'Balloon (air pressure)', short: 'balloon' },
+  rubber: { name: 'Rubber band', short: 'rubber band' },
+  mousetrap: { name: 'Mousetrap spring', short: 'mousetrap spring' },
+  wind: { name: 'Wind (sail)', short: 'wind' },
+  solar: { name: 'Solar panel + small motor', short: 'solar panel' }
+};
+const ENERGY_FOR = {
+  car: ['balloon', 'rubber', 'mousetrap', 'wind', 'solar'],
+  boat: ['balloon', 'rubber', 'wind', 'solar'],
+  plane: ['rubber', 'balloon']
+};
+const PARTS = {
+  front: { name: 'Front face', what: 'front-facing panel' },
+  sail: { name: 'Sail', what: 'sail' },
+  wing: { name: 'Wings', what: 'wings' },
+  solar: { name: 'Solar panel', what: 'solar panel' }
+};
+function partsFor(vehicle, energy) {
+  const p = ['front'];
+  if (vehicle === 'plane') p.unshift('wing');
+  if (energy === 'wind') { p.unshift('sail'); p.splice(p.indexOf('front'), 1); }
+  if (energy === 'solar') p.push('solar');
+  return p;
+}
+
+function area(p) {
+  if (!p) return 0;
+  const a = +p.a || 0, b = +p.b || 0;
+  if (p.shape === 'square') return a * a;
+  if (p.shape === 'triangle') return 0.5 * a * b;
+  return a * b;
+}
+function span(p) { return +p.a || 0; }
+
+function fixedPart(S, name) {
+  if (name === 'front') return { shape: 'rect', a: S.body.W, b: S.body.H };
+  return S.fixed[name];
+}
+function partOf(S, name, i) { return name === S.iv ? S.d[i] : fixedPart(S, name); }
+
+function massItems(S, i) {
+  const mat = MATERIALS[S.material].g, b = S.body, items = [];
+  const L = b.L, W = b.W, H = b.H;
+  if (S.vehicle === 'car') {
+    items.push(['Body (' + MATERIALS[S.material].name.toLowerCase() + ')', 2 * (L * W + L * H + W * H) * mat]);
+    items.push(['4 wheels (' + WHEELS[S.wheels].name.toLowerCase() + ')', 4 * WHEELS[S.wheels].g]);
+    items.push(['2 axles', 6]);
+  } else if (S.vehicle === 'boat') {
+    items.push(['Hull (' + MATERIALS[S.material].name.toLowerCase() + ')', (L * W + 2 * (L * H + W * H)) * mat]);
+  } else {
+    items.push(['Body / fuselage', 2 * (L * W + L * H + W * H) * mat]);
+    const wa = area(partOf(S, 'wing', i));
+    items.push(['Wings (' + wa.toFixed(0) + ' cm²)', wa * mat]);
+    items.push(['Tail', 0.2 * wa * mat]);
+  }
+  const e = S.energy;
+  if (e === 'balloon') items.push(['Balloon + straw nozzle', 5]);
+  if (e === 'rubber') items.push([S.bands + ' rubber band' + (S.bands > 1 ? 's' : '') + (S.vehicle === 'plane' ? ' + propeller' : S.vehicle === 'boat' ? ' + paddle' : ''), S.bands * 1.5 + (S.vehicle === 'car' ? 0 : 4)]);
+  if (e === 'mousetrap') items.push(['Mousetrap + string', 30]);
+  if (e === 'wind') { const sa = area(partOf(S, 'sail', i)); items.push(['Sail (' + sa.toFixed(0) + ' cm² of paper) + mast', sa * 0.01 + 4]); }
+  if (e === 'solar') { const pa = area(partOf(S, 'solar', i)); items.push(['Motor + wires' + (S.vehicle === 'boat' ? ' + propeller' : ''), 18]); items.push(['Solar panel (' + pa.toFixed(0) + ' cm²)', pa * 0.12]); }
+  if (S.iv === 'front' && S.vehicle !== 'plane') items.push(['Front panel (' + area(S.d[i]).toFixed(0) + ' cm²)', area(S.d[i]) * mat]);
+  if (S.iv === 'front' && S.vehicle === 'plane') items.push(['Nose panel (' + area(S.d[i]).toFixed(0) + ' cm²)', area(S.d[i]) * mat]);
+  if (+S.extra) items.push(['Extra load', +S.extra]);
+  return items;
+}
+function simMass(S, i) { return massItems(S, i).reduce((s, x) => s + x[1], 0); }
+function massKg(S, i) {
+  const o = S.massReal && S.massReal[i];
+  if (S.real && o !== '' && o != null && !isNaN(+o) && +o > 0) return +o / 1000;
+  return Math.round(simMass(S, i)) / 1000;
+}
+function frontArea(S, i) { return area(partOf(S, 'front', i)); }
+
+function rngFrom(seed) {
+  let s = seed >>> 0 || 1;
+  return () => { s ^= s << 13; s >>>= 0; s ^= s >> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; };
+}
+
+function simulate(S, i, rng) {
+  const m = simMass(S, i) / 1000;
+  const nz = k => 1 + (rng() * 2 - 1) * k;
+  const th = nz(0.07), fr = nz(0.1), wn = nz(0.1), side = rng();
+  const Afront = frontArea(S, i) / 1e4;
+  const course = +S.track || 2, ROOM = 40; let crossT = null;
+  const e = S.energy, veh = S.vehicle;
+  const dt = 0.004;
+  let t = 0, x = 0, y = 0, v = 0, vx = 0, vy = 0, vmax = 0, reason = 'stopped';
+  let thrustEnd = 0;
+  const samples = [];
+  const D = +S.balloonD, bands = +S.bands, turns = +S.turns;
+  const continuous = e === 'wind' || e === 'solar';
+  const left = () => e === 'balloon' ? Math.max(0, 1 - t / (0.1 * D)) : e === 'rubber' ? Math.max(0, 1 - t / (turns * (veh === 'plane' ? 0.05 : 0.035))) : e === 'mousetrap' ? Math.max(0, 1 - x / 0.8) : 1;
+
+  function thrust(t, x, v) {
+    if (e === 'balloon') {
+      const F0 = 0.0058 * D * th * (veh === 'plane' ? 0.35 : 1), T = 0.1 * D; thrustEnd = T;
+      return t < T ? F0 * (1 - t / T) : 0;
+    }
+    if (e === 'rubber') {
+      let F0 = 0.06 * bands * th, T = turns * 0.035;
+      if (veh === 'boat') F0 *= 0.6;
+      if (veh === 'plane') { F0 = 0.016 * bands * th; T = turns * 0.05; }
+      thrustEnd = T;
+      return t < T ? F0 * (1 - 0.6 * t / T) : 0;
+    }
+    if (e === 'mousetrap') { thrustEnd = 1e9; return x < 0.8 ? 0.26 * th : 0; }
+    if (e === 'wind') {
+      const vw = +S.wind * wn * Math.exp(-x / 1.5), A = area(partOf(S, 'sail', i)) / 1e4, rel = vw - v;
+      return 0.5 * RA * 1.2 * A * rel * Math.abs(rel);
+    }
+    if (e === 'solar') {
+      const P = SUN[S.sun].w * area(partOf(S, 'solar', i)) / 1e4 * 0.15 * 0.025 * th;
+      const vnl = 1;
+      return Math.max(0, Math.min(0.3 * (1 - v / vnl), P / Math.max(v, 0.05)) - 0.02) * (veh === 'boat' ? 0.7 : 1);
+    }
+    return 0;
+  }
+
+  if (veh !== 'plane') {
+    let zeroFor = 0, slowFor = 0, lastSample = -1;
+    // boat geometry
+    const Lm = S.body.L / 100, Wm = S.body.W / 100;
+    const draft = m / (RW * Lm * Wm);
+    const wet = Lm * Wm + 2 * (Lm + Wm) * draft;
+    const wk = veh === 'boat' ? WATERS[S.water].k : 1;
+    const mu = veh === 'car' ? (AXLES[S.axle].mu + WHEELS[S.wheels].mu) * SURFACES[S.surface].k * fr : 0;
+    while (t < 60) {
+      const F = thrust(t, x, v);
+      let R = 0.5 * RA * 1.05 * Afront * v * v;
+      if (veh === 'boat') R += wk * fr * (0.5 * RW * 0.5 * Wm * draft * v * v + 0.5 * RW * 0.004 * wet * v * v + 0.8 * wet * v);
+      const fric = mu * m * G;
+      if (v <= 1e-6 && F <= fric + 1e-9) {
+        v = 0;
+        if (t > thrustEnd || continuous) zeroFor += dt;
+        if (!continuous && t > thrustEnd && e !== 'mousetrap') break;
+        if (e === 'mousetrap' && x >= 0.8) break;
+        if (zeroFor > 1) break;
+      } else {
+        zeroFor = 0;
+        v += (F - R - fric) / m * dt;
+        if (v < 0) v = 0;
+        if (veh === 'boat' && v < 0.01 && F < 1e-6 && (t > thrustEnd || e === 'mousetrap')) { v = 0; }
+      }
+      if (continuous && t > 1 && v < 0.05) { slowFor += dt; if (slowFor > 1.5) break; } else slowFor = 0;
+      x += v * dt; t += dt;
+      vmax = Math.max(vmax, v);
+      if (t - lastSample >= 0.05) { samples.push([t, x, 0, v, left()]); lastSample = t; }
+      if (crossT === null && x >= course) crossT = t;
+      if ((crossT !== null && t >= 10) || x >= ROOM) break;
+    }
+  } else {
+    const ang = (3 + (rng() * 2 - 1) * 2) * Math.PI / 180;
+    const v0 = +S.launch * nz(0.08);
+    vx = v0 * Math.cos(ang); vy = v0 * Math.sin(ang); y = 1.5;
+    const wing = partOf(S, 'wing', i), Sw = area(wing) / 1e4;
+    const AR = Math.max(1.5, Math.pow(span(wing) / 100, 2) / Math.max(Sw, 1e-4));
+    const CL = 0.55, CD = 0.11 + CL * CL / (Math.PI * AR * 0.75);
+    let lastSample = -1; reason = 'landed';
+    while (t < 60) {
+      const sp = Math.hypot(vx, vy) || 1e-6, ux = vx / sp, uy = vy / sp;
+      const q = 0.5 * RA * sp * sp;
+      const T = thrust(t, x, sp);
+      const Lf = q * CL * Sw, Df = q * (CD * Sw + 0.9 * Afront);
+      const ax = ((T - Df) * ux + Lf * (-uy)) / m;
+      const ay = ((T - Df) * uy + Lf * ux) / m - G;
+      vx += ax * dt; vy += ay * dt;
+      if (vx < 0.05) vx = 0.05;
+      x += vx * dt; y += vy * dt; t += dt;
+      v = Math.hypot(vx, vy); vmax = Math.max(vmax, v);
+      if (y > 4) { y = 4; if (vy > 0) vy = 0; reason = 'landed'; }
+      if (t - lastSample >= 0.05) { samples.push([t, x, y, v, left()]); lastSample = t; }
+      if (y <= 0) { y = 0; break; }
+      if (crossT === null && x >= course) crossT = t;
+      if (x >= ROOM) break;
+    }
+  }
+  samples.push([t, x, y, 0, left()]);
+  let d10 = x;
+  for (const s of samples) if (s[0] <= 10) d10 = s[1];
+  if (t <= 10) d10 = x;
+  reason = crossT !== null ? 'end' : 'stopped';
+  return { dist: crossT !== null ? course : x, time: crossT !== null ? crossT : t, tEnd: t, xEnd: x, d10, vmax, samples, reason, side, m };
+}
+
+if (typeof module !== 'undefined') module.exports = { simulate, simMass, massItems, area, rngFrom, partsFor };
+
+// ===== State =====
+const PAINTS = ['#0b97a3', '#f2621f', '#e03131', '#7048e8', '#2f9e44', '#f59f00', '#1c7ed6', '#d6336c'];
+const DEFAULTS = {
+  v: 3, vehicle: 'car', energy: 'balloon', iv: 'front', material: 'cardboard',
+  body: { L: 30, W: 10, H: 6 }, wheels: 'caps', axle: 'straw', surface: 'tile', water: 'calm', sun: 'bright',
+  fixed: { sail: { shape: 'triangle', a: 20, b: 25 }, wing: { shape: 'rect', a: 40, b: 8 }, solar: { shape: 'rect', a: 11, b: 6 } },
+  d: [{ shape: 'rect', a: 10, b: 6 }, { shape: 'rect', a: 16, b: 12 }],
+  names: ['', ''], paint: ['#0b97a3', '#f2621f'],
+  balloonD: 25, bands: 2, turns: 60, wind: 3, launch: 4, extra: 0, track: 2,
+  seed: 20262027, real: false, massReal: ['', ''], real10: ['', ''], raced: false, seen: {},
+  realTrials: [[{ d: '', t: '', o: '' }, { d: '', t: '', o: '' }, { d: '', t: '', o: '' }], [{ d: '', t: '', o: '' }, { d: '', t: '', o: '' }, { d: '', t: '', o: '' }]],
+  edits: {}, ans: {}, obs: [['', '', ''], ['', '', '']], fq: [], gb: { dist: ['', ''], pow: ['', ''] }
+};
+const PART_DEFAULTS = {
+  front: { car: [{ shape: 'rect', a: 10, b: 6 }, { shape: 'rect', a: 16, b: 12 }], boat: [{ shape: 'rect', a: 12, b: 6 }, { shape: 'rect', a: 18, b: 12 }], plane: [{ shape: 'square', a: 3 }, { shape: 'square', a: 6 }] },
+  sail: [{ shape: 'triangle', a: 20, b: 25 }, { shape: 'rect', a: 20, b: 25 }],
+  wing: [{ shape: 'rect', a: 30, b: 8 }, { shape: 'rect', a: 45, b: 10 }],
+  solar: [{ shape: 'rect', a: 8, b: 6 }, { shape: 'rect', a: 12, b: 10 }]
+};
+const BODY_DEFAULTS = { car: { L: 30, W: 10, H: 6 }, boat: { L: 30, W: 12, H: 6 }, plane: { L: 30, W: 3, H: 3 } };
+let S;
+try { S = JSON.parse(localStorage.getItem('pblVehicleLab3') || 'null'); } catch (e) { S = null; }
+S = Object.assign(JSON.parse(JSON.stringify(DEFAULTS)), S && S.v === 3 ? S : {});
+function save() { try { localStorage.setItem('pblVehicleLab3', JSON.stringify(S)); } catch (e) { } }
+
+let SIM = [[], []];
+function recompute() { for (let i = 0; i < 2; i++) for (let k = 0; k < 3; k++) SIM[i][k] = simulate(S, i, rngFrom(S.seed + k * 977)); }
+
+// ===== helpers =====
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const r2 = x => Math.round(x * 100) / 100, r3 = x => Math.round(x * 1000) / 1000;
+function sig(x, n = 3) {
+  if (!isFinite(x)) return '—'; if (x === 0) return '0';
+  const d = Math.max(0, n - 1 - Math.floor(Math.log10(Math.abs(x))));
+  return (+x.toFixed(Math.min(d, 6))).toFixed(Math.min(d, 6));
+}
+const f2 = x => isFinite(x) ? x.toFixed(2) : '—';
+const SHAPES = { rect: 'Rectangle', square: 'Square', triangle: 'Triangle' };
+const shortName = i => S.names[i] || 'Design ' + (i + 1);
+const dname = i => S.names[i] ? `Design ${i + 1} “${S.names[i]}”` : `Design ${i + 1}`;
+function dimLabels(shape) { return shape === 'square' ? ['Side'] : shape === 'triangle' ? ['Base', 'Height'] : ['Length', 'Width']; }
+function partDims(p) { return p.shape === 'square' ? `side = ${p.a} cm` : p.shape === 'triangle' ? `base = ${p.a} cm, height = ${p.b} cm` : `length = ${p.a} cm, width = ${p.b} cm`; }
+const fmtA = A => (Math.round(A * 100) / 100).toString();
+function areaWork(p) {
+  const A = area(p);
+  if (p.shape === 'square') return `A = side × side = ${p.a} × ${p.a} = ${fmtA(A)} cm²`;
+  if (p.shape === 'triangle') return `A = ½ × base × height = ½ × ${p.a} × ${p.b} = ${fmtA(A)} cm²`;
+  return `A = length × width = ${p.a} × ${p.b} = ${fmtA(A)} cm²`;
+}
+function toast(msg) { const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 1700); }
+function copyText(text) { try { navigator.clipboard.writeText(text).then(() => toast('Copied'), () => fallbackCopy(text)); } catch (e) { fallbackCopy(text); } }
+function fallbackCopy(text) {
+  const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); toast('Copied'); } catch (e) { toast('Select the text and copy it'); } ta.remove();
+}
+const reduceMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+const ICON = {
+  ok: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="var(--good)"/><path d="M6.5 12.5 l3.5 3.5 l7.5 -8" fill="none" stroke="#fff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  no: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="var(--warn)"/><path d="M12 6 v8 M12 17.5 v.5" stroke="#fff" stroke-width="3" stroke-linecap="round"/></svg>',
+  cup: '<svg viewBox="0 0 52 52" aria-hidden="true"><path d="M14 8 h24 v10 a12 12 0 0 1 -24 0 Z" fill="var(--sun)"/><path d="M14 11 h-6 a6 6 0 0 0 6 9 M38 11 h6 a6 6 0 0 1 -6 9" fill="none" stroke="var(--sun)" stroke-width="3"/><rect x="23" y="29" width="6" height="8" fill="var(--sun)"/><rect x="15" y="37" width="22" height="7" rx="2" fill="var(--ink)"/></svg>',
+  leaf: '<svg viewBox="0 0 52 52" aria-hidden="true"><path d="M10 42 C10 18 26 8 44 8 C44 30 32 42 10 42 Z" fill="var(--good)"/><path d="M12 40 L34 18" stroke="var(--paper)" stroke-width="3" stroke-linecap="round"/></svg>',
+  bolt: '<svg viewBox="0 0 52 52" aria-hidden="true"><circle cx="26" cy="26" r="22" fill="var(--up)"/><path d="M29 8 L15 29 h10 l-3 15 l15 -22 h-10 Z" fill="var(--sun)"/></svg>',
+  flag: '<svg viewBox="0 0 40 40" aria-hidden="true"><rect x="7" y="4" width="3" height="33" rx="1.5" fill="var(--sunInk)"/><path d="M10 6 h22 l-5 7 l5 7 h-22 Z" fill="var(--sunInk)"/></svg>'
+};
+
+// ===== Vehicle art (side view; origin = rear at ground; moves right) =====
+function vehicleArt(S, i, px, idp) {
+  idp = idp || '';
+  const k = px / S.body.L;
+  const cl = (v, a, b) => Math.max(a, Math.min(b, v));
+  const H = cl(S.body.H * k, 7, px * 0.42);
+  const ink = '#16213a', paint = S.paint[i] || PAINTS[i];
+  const col = i === 0 ? 'var(--d1)' : 'var(--d2)';
+  const e = S.energy, part = n => partOf(S, n, i);
+  const pH = p => (p.shape === 'square' ? p.a : p.b) * k, pW = p => p.a * k;
+  const sw = Math.max(1.5, px / 90);
+  let g = '';
+  const wheel = (cx, cy, r, n) => `<g transform="translate(${cx} ${cy})"><g id="${idp}w${n}"><circle r="${r}" fill="${ink}"/><circle r="${r * 0.62}" fill="#cfd8e6"/><path d="M${-r * 0.62} 0 H${r * 0.62} M0 ${-r * 0.62} V${r * 0.62}" stroke="${ink}" stroke-width="${sw}"/><circle r="${r * 0.18}" fill="${ink}"/></g></g>`;
+  if (S.vehicle === 'car') {
+    const wr = cl(px * 0.1, 4, 18), top = -wr * 0.9 - H, x0 = px * 0.03, x1 = px * 0.97;
+    g += `<path d="M${x0} ${top + H} V${top + H * 0.25} Q${x0} ${top} ${x0 + H * 0.3} ${top} H${x1 - H * 0.55} Q${x1} ${top + H * 0.1} ${x1} ${top + H * 0.6} V${top + H} Z" fill="${paint}" stroke="${ink}" stroke-width="${sw}" stroke-linejoin="round"/>`;
+    g += `<rect x="${x0 + px * 0.06}" y="${top + H * 0.42}" width="${px * 0.8}" height="${Math.max(2, H * 0.12)}" rx="1" fill="#fff" opacity=".45"/>`;
+    g += wheel(px * 0.22, -wr, wr, 1) + wheel(px * 0.8, -wr, wr, 2);
+    g += accessory(top, x0, x1);
+    if (S.iv === 'front') g += frontPanel(x1, -wr * 0.5);
+  } else if (S.vehicle === 'boat') {
+    const top = -H + px * 0.03;
+    g += `<path d="M0 ${top} L${px * 1.04} ${top} L${px * 0.9} ${px * 0.05} L${px * 0.07} ${px * 0.05} Z" fill="${paint}" stroke="${ink}" stroke-width="${sw}" stroke-linejoin="round"/>`;
+    g += `<path d="M${px * 0.05} ${top + (px * 0.05 - top) * 0.45} H${px * 0.95}" stroke="#fff" stroke-width="${Math.max(1.5, H * 0.1)}" opacity=".55"/>`;
+    g += accessory(top, 0, px * 0.92);
+    if (S.iv === 'front') g += frontPanel(px * 0.99, top + 2);
+  } else {
+    const fh = Math.max(H, px * 0.07), y0 = -fh - px * 0.12;
+    g += `<path d="M2 ${y0} L-${px * 0.02} ${y0 - fh * 2.2} L${px * 0.17} ${y0} Z" fill="${paint}" stroke="${ink}" stroke-width="${sw}" stroke-linejoin="round"/>`;
+    g += `<rect x="0" y="${y0}" width="${px}" height="${fh}" rx="${fh / 2}" fill="${paint}" stroke="${ink}" stroke-width="${sw}"/>`;
+    const w = part('wing'); const ch = cl((w.shape === 'triangle' ? w.b * 0.6 : (w.shape === 'square' ? w.a : w.b)) * k, 8, px * 0.8);
+    g += `<ellipse cx="${px * 0.45}" cy="${y0 + fh * 0.25}" rx="${ch / 2}" ry="${Math.max(2.5, px * 0.025)}" fill="${S.iv === 'wing' ? col : ink}" stroke="${ink}" stroke-width="1"/>`;
+    if (e === 'rubber') {
+      g += `<path d="M${px * 0.12} ${y0 + fh + 2} Q${px * 0.5} ${y0 + fh + px * 0.06} ${px * 0.95} ${y0 + fh + 2}" fill="none" stroke="#c25e00" stroke-width="${sw}"/>`;
+    } else {
+      const r = cl(S.balloonD * k * 0.3, 6, px * 0.16);
+      g += `<path d="M${px * 0.5} ${y0 - r * 0.8} L${px * 0.18} ${y0 - r * 0.6}" stroke="${ink}" stroke-width="${sw}"/><g transform="translate(${px * 0.5} ${y0 - r * 0.8})"><g id="${idp}bal"><ellipse rx="${r * 1.3}" ry="${r}" fill="#e64980" stroke="${ink}" stroke-width="1"/><ellipse cx="${r * 0.4}" cy="${-r * 0.4}" rx="${r * 0.3}" ry="${r * 0.18}" fill="#fff" opacity=".5"/></g></g>`;
+    }
+    g += `<g transform="translate(${px + 3} ${y0 + fh / 2})"><g id="${idp}prop"><ellipse rx="${Math.max(2, px * 0.02)}" ry="${fh + px * 0.09}" fill="${ink}" opacity=".85"/></g><circle r="${Math.max(2, px * 0.02)}" fill="${ink}"/></g>`;
+    if (S.iv === 'front') { const s = cl(pH(S.d[i]), 4, px * 0.4); g += `<rect x="${px + 6}" y="${y0 + fh / 2 - s / 2}" width="${Math.max(3, px * 0.03)}" height="${s}" fill="${col}" stroke="${ink}" stroke-width="1"/>`; }
+  }
+  return g;
+
+  function frontPanel(x, base) {
+    const p = S.d[i]; const h = cl(pH(p), 4, px * 0.9), w = Math.max(3, px * 0.035);
+    if (p.shape === 'triangle') return `<path d="M${x} ${base} L${x + w} ${base} L${x + w / 2} ${base - h} Z" fill="${col}" stroke="${ink}" stroke-width="1"/>`;
+    return `<rect x="${x}" y="${base - h}" width="${w}" height="${h}" fill="${col}" stroke="${ink}" stroke-width="1"/>`;
+  }
+  function accessory(top, x0, x1) {
+    const len = x1 - x0;
+    if (e === 'balloon') {
+      const r = cl(S.balloonD * k * 0.38, 6, len * 0.21);
+      return `<path d="M${x0 + len * 0.42} ${top - r * 0.85} L${x0 - px * 0.04} ${top + 2}" stroke="${ink}" stroke-width="${sw * 1.4}" stroke-linecap="round"/>` +
+        `<g transform="translate(${x0 + len * 0.42} ${top - r * 0.85})"><g id="${idp}bal"><ellipse rx="${r * 1.25}" ry="${r}" fill="#e64980" stroke="${ink}" stroke-width="1"/><ellipse cx="${r * 0.45}" cy="${-r * 0.45}" rx="${r * 0.32}" ry="${r * 0.18}" fill="#fff" opacity=".55"/></g></g>`;
+    }
+    if (e === 'rubber') {
+      let s = `<path d="M${x0 + len * 0.22} ${top + H * 0.5} `; for (let j = 1; j <= 8; j++) s += `L${x0 + len * 0.22 + len * 0.6 * j / 8} ${top + H * 0.5 + (j % 2 ? -3 : 3)} `;
+      s += `" fill="none" stroke="#c25e00" stroke-width="${sw * 1.3}"/>`;
+      if (S.vehicle === 'boat') s += `<g transform="translate(${x0 - px * 0.05} ${top + H * 0.3})"><g id="${idp}prop"><rect x="${-px * 0.04}" y="${-H * 0.5}" width="${px * 0.08}" height="${H}" fill="${ink}" opacity=".8"/></g></g>`;
+      return s;
+    }
+    if (e === 'mousetrap') {
+      return `<rect x="${x0 + len * 0.3}" y="${top - 7}" width="${len * 0.32}" height="7" rx="1" fill="#c9a66b" stroke="${ink}"/>` +
+        `<g transform="translate(${x0 + len * 0.36} ${top - 7})"><g id="${idp}arm"><path d="M0 0 L${len * 0.3} ${-len * 0.22}" stroke="${ink}" stroke-width="${sw * 1.4}" stroke-linecap="round"/></g></g>`;
+    }
+    if (e === 'wind') {
+      const p = part('sail'); const w = cl(pW(p), 8, len * 0.68), h = cl(pH(p), 8, px * 0.9), mx = x0 + len * 0.3;
+      const sail = p.shape === 'triangle' ? `M${mx} ${top - h} L${mx} ${top - 2} L${mx + w} ${top - 2} Z` : `M${mx} ${top - h} L${mx} ${top - 2} L${mx + w} ${top - 2} L${mx + w} ${top - h} Z`;
+      return `<line x1="${mx}" y1="${top}" x2="${mx}" y2="${top - h - 4}" stroke="${ink}" stroke-width="${sw * 1.4}"/><path d="${sail}" fill="${S.iv === 'sail' ? col : '#f8f9fa'}" fill-opacity=".92" stroke="${ink}" stroke-width="${sw}" stroke-linejoin="round"/>`;
+    }
+    if (e === 'solar') {
+      const p = part('solar'); const w = cl(pW(p), 10, len);
+      let s = `<line x1="${x0 + len / 2}" y1="${top}" x2="${x0 + len / 2}" y2="${top - 7}" stroke="${ink}" stroke-width="${sw}"/><rect x="${x0 + len / 2 - w / 2}" y="${top - 11}" width="${w}" height="5" fill="${S.iv === 'solar' ? col : '#1c3f8c'}" stroke="${ink}"/>`;
+      for (let j = 1; j < 4; j++) s += `<line x1="${x0 + len / 2 - w / 2 + w * j / 4}" y1="${top - 11}" x2="${x0 + len / 2 - w / 2 + w * j / 4}" y2="${top - 6}" stroke="#9cc3ff" stroke-width="1"/>`;
+      if (S.vehicle === 'boat') s += `<g transform="translate(${x0 - px * 0.04} ${px * 0.06})"><g id="${idp}prop"><ellipse rx="2" ry="${px * 0.06}" fill="${ink}"/></g></g>`;
+      return s;
+    }
+    return '';
+  }
+}
+
+// ===== Scenes =====
+function sceneDefs(id) {
+  return `<defs><pattern id="tiles${id}" width="40" height="40" patternUnits="userSpaceOnUse"><rect width="40" height="40" fill="var(--floor1)"/><rect width="20" height="20" fill="var(--floor2)"/><rect x="20" y="20" width="20" height="20" fill="var(--floor2)"/></pattern>
+  <pattern id="check${id}" width="8" height="8" patternUnits="userSpaceOnUse"><rect width="8" height="8" fill="#fff"/><rect width="4" height="4" fill="#16213a"/><rect x="4" y="4" width="4" height="4" fill="#16213a"/></pattern></defs>`;
+}
+function heroScene() {
+  const W = 640, H = 300, gy = 228;
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Your two designs side by side">${sceneDefs('h')}`;
+  s += `<rect width="${W}" height="${H}" fill="var(--skyScene)"/><circle cx="580" cy="54" r="28" fill="var(--sun)"/>`;
+  s += `<g fill="var(--paper)" opacity=".85"><ellipse cx="300" cy="58" rx="46" ry="14"/><ellipse cx="330" cy="48" rx="30" ry="14"/><ellipse cx="470" cy="96" rx="40" ry="11"/></g>`;
+  if (S.vehicle === 'boat') s += `<rect y="${gy}" width="${W}" height="${H - gy}" fill="var(--water1)"/><g class="wave"><path d="M0 ${gy} ${Array.from({ length: 36 }, () => 'q10 -7 20 0').join(' ')}" fill="none" stroke="var(--water2)" stroke-width="3"/></g>`;
+  else s += `<rect y="${gy + (S.vehicle === 'plane' ? 40 : 0)}" width="${W}" height="${H - gy}" fill="url(#tilesh)"/><line x1="0" y1="${gy + (S.vehicle === 'plane' ? 40 : 0)}" x2="${W}" y2="${gy + (S.vehicle === 'plane' ? 40 : 0)}" stroke="var(--ink)" stroke-width="2"/>`;
+  const px = 200;
+  for (let i = 0; i < 2; i++) {
+    const x = i ? 370 : 60, y = S.vehicle === 'plane' ? gy - 20 - i * 14 : gy;
+    s += `<g transform="translate(${x} ${y})">${vehicleArt(S, i, px, 'h' + i)}</g>`;
+    const nm = esc(shortName(i)), wPill = Math.max(110, nm.length * 10 + 30);
+    s += `<g transform="translate(${x + px / 2} ${H - 24})"><rect x="${-wPill / 2}" y="-16" width="${wPill}" height="30" rx="15" fill="var(--d${i + 1})"/><text y="5" text-anchor="middle" font-family="var(--f-display)" font-weight="800" font-size="17" fill="#fff">${nm}</text></g>`;
+  }
+  return s + '</svg>';
+}
+
+// ===== Build UI =====
+const VEH_INFO = { car: 'Rolls on wheels', boat: 'Floats on water', plane: 'Flies through the air' };
+const ENERGY_INFO = { balloon: 'Air rushes out and pushes', rubber: 'Wind it up, let it go', mousetrap: 'A spring pulls a string', wind: 'A fan blows the sail', solar: 'Sunlight runs a motor' };
+function fillSelect(id, obj) { $(id).innerHTML = Object.entries(obj).map(([k, v]) => `<option value="${k}">${esc(v.name)}</option>`).join(''); }
+fillSelect('#in-mat', MATERIALS); fillSelect('#in-wheels', WHEELS); fillSelect('#in-axle', AXLES); fillSelect('#in-surface', SURFACES); fillSelect('#in-water', WATERS); fillSelect('#in-sun', SUN);
+function getK(path) { return path.split('.').reduce((o, k) => o[k], S); }
+function setK(path, val) { const ks = path.split('.'); const last = ks.pop(); ks.reduce((o, k) => o[k], S)[last] = val; }
+function syncInputs() {
+  document.querySelectorAll('[data-k]').forEach(el => { if (document.activeElement !== el) el.value = getK(el.dataset.k); });
+  document.querySelectorAll('[data-show]').forEach(el => { const s = el.dataset.show; el.hidden = !(s === S.energy || s === S.vehicle); });
+}
+function renderVehOpts() {
+  const mini = v => {
+    const T = Object.assign({}, S, { vehicle: v, body: BODY_DEFAULTS[v], energy: ENERGY_FOR[v].includes(S.energy) ? S.energy : ENERGY_FOR[v][0], iv: 'none', paint: [S.paint[0], S.paint[1]], fixed: S.fixed, d: S.d });
+    return `<svg viewBox="-20 -100 190 115" aria-hidden="true">${v === 'boat' ? '<rect x="-20" y="2" width="190" height="14" fill="var(--water1)"/>' : '<line x1="-20" y1="0" x2="170" y2="0" stroke="currentColor" stroke-width="2" opacity=".4"/>'}<g transform="translate(5 ${v === 'plane' ? -12 : 0})">${vehicleArt(T, 0, 140, 'm' + v)}</g></svg>`;
+  };
+  $('#vehOpts').innerHTML = ['car', 'boat', 'plane'].map(v => `<button type="button" class="vcard" data-veh="${v}" aria-pressed="${S.vehicle === v}">${mini(v)}${v[0].toUpperCase() + v.slice(1)}<span>${VEH_INFO[v]}</span></button>`).join('');
+  $('#energyOpts').innerHTML = ENERGY_FOR[S.vehicle].map(e => `<button type="button" class="ecard" data-energy="${e}" aria-pressed="${S.energy === e}">${esc(ENERGY[e].name)}<span>${ENERGY_INFO[e]}</span></button>`).join('');
+  $('#partOpts').innerHTML = partsFor(S.vehicle, S.energy).map(p => `<button type="button" class="chip" data-part="${p}" aria-pressed="${S.iv === p}">${PARTS[p].name}</button>`).join('');
+}
+document.addEventListener('input', ev => {
+  const el = ev.target; if (!el.dataset) return;
+  if (el.dataset.k) { setK(el.dataset.k, el.type === 'number' ? (el.value === '' ? 0 : +el.value) : el.value); changed(); return; }
+  if (el.dataset.dim) { const [i, key] = el.dataset.dim.split(':'); S.d[+i][key] = el.value === '' ? 0 : +el.value; ['area0', 'area1', 'adiff'].forEach(k => { const r = document.getElementById('res-' + k); if (r) r.innerHTML = ''; }); changed(); return; }
+  if (el.dataset.fx) { const [n, key] = el.dataset.fx.split(':'); S.fixed[n][key] = el.value === '' ? 0 : +el.value; changed(); return; }
+  if (el.dataset.name) { S.names[+el.dataset.name] = el.value.slice(0, 20); save(); $('#heroScene').innerHTML = heroScene(); renderMass(); clearTimeout(tmr); tmr = setTimeout(() => { renderTrials(); renderDerived(); }, 300); return; }
+  if (el.dataset.trial && S.real) { const [i, k, key] = el.dataset.trial.split(':'); S.realTrials[+i][+k][key] = el.value; save(); renderDerived(); updateProgress(); return; }
+  if (el.dataset.r10 && S.real) { S.real10[+el.dataset.r10] = el.value; save(); renderDerived(); return; }
+  if (el.dataset.mass && S.real) { S.massReal[+el.dataset.mass] = el.value; save(); renderDerived(); return; }
+  if (el.dataset.chk) { S.ans[el.dataset.chk] = el.value; save(); const r = document.getElementById('res-' + el.dataset.chk); if (r) r.innerHTML = ''; return; }
+  if (el.dataset.obs) { const [i, k] = el.dataset.obs.split(':'); S.obs[+i][+k] = el.value; save(); return; }
+  if (el.dataset.gb) { const [kind, i] = el.dataset.gb.split(':'); S.gb[kind][+i] = el.value; save(); renderGraphs(); return; }
+});
+document.addEventListener('keydown', ev => { if (ev.key === 'Enter' && ev.target.dataset && ev.target.dataset.chk) doCheck(ev.target.dataset.chk); });
+document.addEventListener('change', ev => {
+  const el = ev.target; if (!el.dataset) return;
+  if (el.dataset.shape) { const i = +el.dataset.shape; S.d[i].shape = el.value; if (el.value !== 'square' && !S.d[i].b) S.d[i].b = S.d[i].a; renderEditors(true); changed(); }
+  if (el.dataset.fq) { S.fq[+el.dataset.fq] = el.value; save(); const r = document.getElementById('fqr' + el.dataset.fq); if (r) r.innerHTML = ''; return; }
+  if (el.dataset.fxshape) { S.fixed[el.dataset.fxshape].shape = el.value; renderFixed(true); changed(); }
+});
+document.addEventListener('click', ev => {
+  const b = ev.target.closest('button'); if (!b) return;
+  if (b.dataset.veh) setVehicle(b.dataset.veh);
+  else if (b.dataset.energy) { S.energy = b.dataset.energy; S.fq = []; fixIV(); S.track = suggestCourse(); renderEditors(true); renderFixed(true); changed(); }
+  else if (b.dataset.part) { S.iv = b.dataset.part; S.d = clone(partDefaults(S.iv)); renderEditors(true); renderFixed(true); changed(); }
+  else if (b.dataset.tab) showTab(b.dataset.tab);
+  else if (b.dataset.play) race(+b.dataset.play, false);
+  else if (b.dataset.paint) { const [i, c] = b.dataset.paint.split('|'); S.paint[+i] = c; renderEditors(true); changed(); }
+  else if (b.dataset.dochk) doCheck(b.dataset.dochk);
+  else if (b.id === 'fqCheck') checkForces();
+});
+const clone = o => JSON.parse(JSON.stringify(o));
+function partDefaults(iv) { const d = PART_DEFAULTS[iv]; return Array.isArray(d) ? d : d[S.vehicle]; }
+function setVehicle(v) {
+  S.vehicle = v; S.body = Object.assign({}, BODY_DEFAULTS[v]);
+  if (!ENERGY_FOR[v].includes(S.energy)) S.energy = ENERGY_FOR[v][0];
+  if (v === 'plane') { S.material = 'foam'; S.turns = 100; S.iv = 'wing'; }
+  else { if (S.material === 'foam') S.material = 'cardboard'; if (S.turns > 80) S.turns = 60; if (S.iv === 'wing') S.iv = 'front'; }
+  fixIV(); S.d = clone(partDefaults(S.iv)); S.track = suggestCourse(); S.fq = [];
+  renderEditors(true); renderFixed(true); changed();
+}
+function fixIV() { const ps = partsFor(S.vehicle, S.energy); if (!ps.includes(S.iv)) { S.iv = ps[0]; S.d = clone(partDefaults(S.iv)); } }
+
+let editorSig = '';
+function renderEditors(force) {
+  const sigx = S.iv + S.d.map(p => p.shape).join() + S.paint.join();
+  if (!force && sigx === editorSig) { drawParts(); return; }
+  editorSig = sigx;
+  $('#designEditors').innerHTML = [0, 1].map(i => {
+    const p = S.d[i], labs = dimLabels(p.shape);
+    return `<div class="design d${i + 1}">
+      <div class="row" style="justify-content:space-between"><span class="dtag d${i + 1}">Design ${i + 1}</span><span class="note">${PARTS[S.iv].name}</span></div>
+      <div class="fields">
+        <label class="f">2D shape<select id="shape${i}" data-shape="${i}">${Object.entries(SHAPES).map(([k, n]) => `<option value="${k}" ${p.shape === k ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
+        <label class="f">${labs[0]} <span class="unit">(cm)</span><input id="dimA${i}" type="number" min="1" max="80" step="0.5" value="${p.a}" data-dim="${i}:a"></label>
+        ${labs[1] ? `<label class="f">${labs[1]} <span class="unit">(cm)</span><input id="dimB${i}" type="number" min="1" max="80" step="0.5" value="${p.b}" data-dim="${i}:b"></label>` : ''}
+      </div>
+      <div class="svgbox" style="margin-top:10px" id="partDraw${i}"></div>
+      ${chkUI('area' + i, `Your answer: area of the ${PARTS[S.iv].what}`, 'cm²')}
+      <div class="namerow">
+        <label class="f">Name this design<input id="name${i}" type="text" maxlength="20" placeholder="${i ? 'e.g. Big Shield' : 'e.g. Zippy'}" value="${esc(S.names[i])}" data-name="${i}"></label>
+        <div><div class="note" style="font-weight:700;margin-bottom:4px">Paint colour</div><div class="swatches">${PAINTS.map(c => `<button type="button" class="sw" style="background:${c}" aria-label="Paint colour ${c}" aria-pressed="${S.paint[i] === c}" data-paint="${i}|${c}"></button>`).join('')}</div></div>
+      </div>
+    </div>`;
+  }).join('');
+  $('#areaDiff').innerHTML = chkUI('adiff', 'Your answer: difference in area between Design 1 and Design 2', 'cm²');
+  drawParts();
+}
+function drawParts() {
+  const maxW = Math.max(...S.d.map(p => +p.a || 1)), maxH = Math.max(...S.d.map(p => p.shape === 'square' ? +p.a : +p.b || 1));
+  const box = 300, scale = Math.min((box - 60) / maxW, 170 / maxH);
+  [0, 1].forEach(i => {
+    const p = S.d[i], w = p.a * scale, h = (p.shape === 'square' ? p.a : p.b) * scale, col = i ? 'var(--d2)' : 'var(--d1)', ox = 40, oy = 190;
+    let grid = ''; const every = scale < 6 ? Math.ceil(6 / scale) : 1;
+    for (let x = 0; x * scale <= w + 0.01; x += every) grid += `<line x1="${ox + x * scale}" y1="${oy}" x2="${ox + x * scale}" y2="${oy - h}" stroke="var(--line)" stroke-width=".7"/>`;
+    for (let y = 0; y * scale <= h + 0.01; y += every) grid += `<line x1="${ox}" y1="${oy - y * scale}" x2="${ox + w}" y2="${oy - y * scale}" stroke="var(--line)" stroke-width=".7"/>`;
+    const shape = p.shape === 'triangle'
+      ? `<path d="M${ox} ${oy} L${ox + w} ${oy} L${ox + w / 2} ${oy - h} Z" fill="${col}" fill-opacity=".28" stroke="${col}" stroke-width="3" stroke-linejoin="round"/><line x1="${ox + w / 2}" y1="${oy}" x2="${ox + w / 2}" y2="${oy - h}" stroke="var(--ink)" stroke-dasharray="4 3"/>`
+      : `<rect x="${ox}" y="${oy - h}" width="${w}" height="${h}" fill="${col}" fill-opacity=".28" stroke="${col}" stroke-width="3" rx="2"/>`;
+    const labs = dimLabels(p.shape);
+    const lab = `<text x="${ox + w / 2}" y="${oy + 19}" text-anchor="middle" font-family="var(--f-mono)" font-size="13" fill="var(--ink)">${labs[0].toLowerCase()} ${p.a} cm</text>` +
+      `<text x="${ox - 9}" y="${oy - h / 2}" text-anchor="middle" font-family="var(--f-mono)" font-size="13" fill="var(--ink)" transform="rotate(-90 ${ox - 9} ${oy - h / 2})">${p.shape === 'square' ? p.a : p.b} cm</text>`;
+    $('#partDraw' + i).innerHTML = `<svg viewBox="0 0 ${box} 215" role="img" aria-label="Design ${i + 1} ${SHAPES[p.shape]} ${partDims(p)}">${grid}${shape}${lab}<text x="${ox + w / 2}" y="${oy - (p.shape === 'triangle' ? h / 3 : h / 2)}" text-anchor="middle" dominant-baseline="middle" font-family="var(--f-display)" font-weight="800" font-size="22" fill="var(--ink)">? cm²</text></svg>`;
+  });
+  const A1 = area(S.d[0]), A2 = area(S.d[1]);
+  $('#fairChecks').innerHTML = A1 === A2 ? `<div>${ICON.no}<span>Both designs have the same area. Change one so your test has something to compare.</span></div>` : '';
+}
+let fixedSig = '';
+function renderFixed(force) {
+  const names = partsFor(S.vehicle, S.energy).filter(n => n !== S.iv && n !== 'front');
+  const sigx = names.join() + names.map(n => S.fixed[n].shape).join();
+  if (!force && sigx === fixedSig) return; fixedSig = sigx;
+  $('#fixedParts').innerHTML = names.map(n => {
+    const p = S.fixed[n], labs = dimLabels(p.shape);
+    return `<div class="sub">${PARTS[n].name} (same in both designs)</div><div class="fields" style="margin-top:0">
+      <label class="f">Shape<select id="fx-${n}" data-fxshape="${n}">${Object.entries(SHAPES).map(([k, s]) => `<option value="${k}" ${p.shape === k ? 'selected' : ''}>${s}</option>`).join('')}</select></label>
+      <label class="f">${labs[0]} <span class="unit">(cm)</span><input id="fxa-${n}" type="number" min="1" step="0.5" value="${p.a}" data-fx="${n}:a"></label>
+      ${labs[1] ? `<label class="f">${labs[1]} <span class="unit">(cm)</span><input id="fxb-${n}" type="number" min="1" step="0.5" value="${p.b}" data-fx="${n}:b"></label>` : ''}
+</div>`;
+  }).join('');
+}
+
+// ===== Answer checking (never reveals the answer) =====
+function chkUI(key, label, unit) {
+  const v = (S.ans && S.ans[key]) || '';
+  return `<div class="chk"><label for="ck-${key}">${label}</label><div class="chkrow"><input id="ck-${key}" type="number" step="any" inputmode="decimal" placeholder="?" data-chk="${key}" value="${esc(v)}"><span class="unit">${unit}</span><button class="btn sm" type="button" data-dochk="${key}">Check</button></div><div class="res" id="res-${key}" aria-live="polite"></div></div>`;
+}
+const AREA_HINT = { rect: 'A rectangle’s area is length × width.', square: 'A square’s area is side × side.', triangle: 'A triangle’s area is ½ × base × height.' };
+function checkSpec(key) {
+  const i = +key.slice(-1);
+  if (key.startsWith('area')) return { v: area(S.d[i]), abs: 0.01, hint: AREA_HINT[S.d[i].shape] };
+  if (key === 'adiff') return { v: Math.abs(area(S.d[1]) - area(S.d[0])), abs: 0.01, hint: 'Subtract the smaller area from the larger area.' };
+  if (key.startsWith('kg')) return { v: massKg(S, i), abs: 0.0006, hint: 'There are 1000 g in 1 kg, so divide the grams by 1000.' };
+  const d = dataFor(i); if (!d.n) return null;
+  if (key.startsWith('avgt')) return { v: d.avgT, abs: 0.011, hint: `Add the ${d.n} times together, then divide by ${d.n}.` };
+  if (key.startsWith('spd')) return { v: d.speed, abs: 0.011, rel: 0.02, hint: 'Speed = distance ÷ time. Use the average time.' };
+  if (key.startsWith('ke')) return { v: d.KE, rel: 0.05, hint: 'Kinetic energy = ½ × mass in kg × speed × speed.' };
+  if (key.startsWith('pw')) return { v: d.P, rel: 0.05, hint: 'Power = kinetic energy ÷ average time.' };
+  return null;
+}
+function doCheck(key) {
+  const el = document.getElementById('ck-' + key), out = document.getElementById('res-' + key); if (!el || !out) return;
+  const u = parseFloat(el.value), spec = checkSpec(key);
+  if (!isFinite(u)) { out.innerHTML = `${ICON.no}<span class="no">Type your answer first.</span>`; return; }
+  if (!spec || !isFinite(spec.v)) { out.innerHTML = `${ICON.no}<span class="no">Collect your data on the Race page first.</span>`; return; }
+  const ok = Math.abs(u - spec.v) <= Math.max(spec.abs || 0, (spec.rel || 0) * Math.abs(spec.v));
+  out.innerHTML = ok ? `${ICON.ok}<span class="yes">Correct! Well done.</span>` : `${ICON.no}<span class="no">Not yet. ${esc(spec.hint)} Check your working and try again.</span>`;
+}
+
+// ===== Forces =====
+function forcesList() {
+  const v = S.vehicle, e = S.energy, F = [];
+  const push = { balloon: 'Thrust: air rushing out of the balloon backwards pushes the vehicle forwards', rubber: v === 'plane' ? 'Thrust: the spinning propeller pulls the plane forwards' : v === 'boat' ? 'Thrust: the paddle pushes water backwards, so the boat moves forwards' : 'Thrust: the unwinding rubber band turns the axle and wheels', mousetrap: 'Thrust: the spring pulls the string, which turns the wheels', wind: 'Push of the wind on the sail', solar: v === 'boat' ? 'Thrust: the motor spins a propeller that pushes water backwards' : 'Thrust: the motor turns the wheels' }[e];
+  F.push({ k: 'thrust', name: e === 'wind' ? 'Wind push' : 'Thrust', text: push, kid: e === 'wind' ? 'The wind pushes the sail forwards.' : 'The push that moves it forwards.' });
+  F.push({ k: 'resist', name: 'Air resistance', text: 'Air resistance (drag): air pushes against the front and slows the vehicle down', kid: 'Air pushing back on the front.' });
+  if (v === 'car') F.push({ k: 'resist', name: 'Friction', text: 'Friction: between the wheels, the axles and the floor; it slows the car down', kid: 'Rubbing that slows the wheels.' });
+  if (v === 'boat') F.push({ k: 'resist', name: 'Water resistance', text: 'Water resistance (drag): water rubs and pushes against the hull and slows the boat down', kid: 'Water pushing back on the hull.' });
+  F.push({ k: 'grav', name: 'Gravity', text: 'Gravity (weight): pulls the vehicle down towards the Earth', kid: 'Pulls everything down.' });
+  if (v === 'car') F.push({ k: 'up', name: 'Normal force', text: 'Normal (support) force: the floor pushes up on the wheels', kid: 'The floor pushes up.' });
+  if (v === 'boat') F.push({ k: 'up', name: 'Buoyancy', text: 'Buoyancy (upthrust): the water pushes the boat up so it floats', kid: 'Water pushes up so it floats.' });
+  if (v === 'plane') F.push({ k: 'up', name: 'Lift', text: 'Lift: air flowing over and under the wings pushes the plane up', kid: 'Wings push the plane up.' });
+  return F;
+}
+function forceDiagramSVG(i = 0, quiz = true) {
+  const W = 600, Hh = 330, px = 230, ox = 185, gy = S.vehicle === 'plane' ? 215 : 230;
+  let s = `<svg viewBox="0 0 ${W} ${Hh}" role="img" aria-label="Labelled force diagram of the ${S.vehicle}">`;
+  s += `<defs>${['thrust', 'resist', 'grav', 'up', 'ink'].map(c => `<marker id="ah-${c}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z" fill="var(--${c})"/></marker>`).join('')}</defs>`;
+  if (S.vehicle === 'car') s += `<line x1="20" y1="${gy}" x2="${W - 20}" y2="${gy}" stroke="var(--ink)" stroke-width="2"/><path d="${Array.from({ length: 28 }, (_, j) => `M${30 + j * 20} ${gy} l-8 9`).join(' ')}" stroke="var(--muted)" stroke-width="1"/>`;
+  if (S.vehicle === 'boat') s += `<rect x="20" y="${gy}" width="${W - 40}" height="50" rx="6" fill="var(--water1)"/>`;
+  if (S.vehicle === 'plane') s += `<line x1="20" y1="${Hh - 20}" x2="${W - 20}" y2="${Hh - 20}" stroke="var(--line)" stroke-width="2" stroke-dasharray="6 5"/>`;
+  s += `<g transform="translate(${ox} ${gy})">${vehicleArt(S, i, px, 'fd')}</g>`;
+  const cy = S.vehicle === 'plane' ? gy - 25 : gy - 40, cx = ox + px / 2;
+  let n = 0;
+  const arrow = (x1, y1, x2, y2, c, label, lx, ly, anchor = 'middle') => {
+    n++; const cc = quiz ? 'ink' : c;
+    const bx = anchor === 'start' ? lx + 16 : anchor === 'end' ? lx - 16 : lx;
+    const lab = quiz ? `<g transform="translate(${bx} ${ly - 6})"><circle r="15" fill="var(--sun)" stroke="#16213a" stroke-width="2"/><text y="6" text-anchor="middle" font-family="var(--f-display)" font-weight="800" font-size="17" fill="#3a2a00">${n}</text></g>`
+      : `<text x="${lx}" y="${ly}" text-anchor="${anchor}" font-family="var(--f-display)" font-weight="800" font-size="17" fill="var(--${c})">${label}</text>`;
+    return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="var(--${cc})" stroke-width="6" marker-end="url(#ah-${cc})" stroke-linecap="round"/>` + lab;
+  };
+  if (S.energy === 'wind') s += arrow(30, cy - 70, ox + px * 0.04 + px * 0.92 * 0.3 - 8, cy - 70, 'thrust', 'Wind push', 30, cy - 82, 'start');
+  else s += arrow(ox + px + 45, cy, ox + px + 145, cy, 'thrust', 'Thrust', ox + px + 95, cy - 12);
+  const dragY = S.energy === 'wind' ? cy + 10 : cy + 34;
+  s += arrow(ox + px + 160, dragY, ox + px + 55, dragY, 'resist', 'Air resistance', ox + px + 105, dragY + 24);
+  if (S.vehicle === 'car') s += arrow(ox + 60, gy + 22, ox - 40, gy + 22, 'resist', 'Friction', ox + 10, gy + 46);
+  if (S.vehicle === 'boat') s += arrow(ox + 40, gy + 22, ox - 70, gy + 22, 'resist', 'Water resistance', ox - 15, gy + 44);
+  s += arrow(cx, gy + (S.vehicle === 'plane' ? 0 : 10), cx, gy + (S.vehicle === 'plane' ? 80 : 70), 'grav', 'Gravity (weight)', cx + 12, gy + (S.vehicle === 'plane' ? 100 : 90), 'start');
+  const up = S.vehicle === 'car' ? 'Normal force' : S.vehicle === 'boat' ? 'Buoyancy' : 'Lift';
+  if (S.vehicle === 'plane') s += arrow(ox + px * 0.15, gy - 45, ox + px * 0.15, gy - 125, 'up', up, ox + px * 0.15 - 10, gy - 112, 'end');
+  else s += arrow(ox - 34, gy - 6, ox - 34, gy - 96, 'up', up, ox - 44, gy - 80, 'end');
+  return s + `</svg>`;
+}
+const FORCE_WORDS = ['Thrust', 'Wind push', 'Air resistance', 'Friction', 'Water resistance', 'Gravity', 'Normal force', 'Buoyancy', 'Lift', 'Magnetism'];
+function renderForces() {
+  $('#forceDiagram').innerHTML = forceDiagramSVG(0, true);
+  const F = forcesList(); S.fq = S.fq || [];
+  $('#forceQuiz').innerHTML = `<p class="note" style="margin:6px 0 10px">Choose the name of each numbered force. Some words in the list are not used.</p><div class="fq">${F.map((f, j) => `<label class="f"><span><span class="numb">${j + 1}</span>Force ${j + 1}</span><select id="fq${j}" data-fq="${j}"><option value="">Choose…</option>${FORCE_WORDS.map(o => `<option ${S.fq[j] === o ? 'selected' : ''}>${o}</option>`).join('')}</select><span class="res" id="fqr${j}"></span></label>`).join('')}</div><div class="row" style="margin-top:10px"><button class="btn sm" type="button" id="fqCheck">Check my labels</button><span class="note" id="fqScore" aria-live="polite"></span></div>`;
+}
+function checkForces() {
+  const F = forcesList(); let right = 0;
+  F.forEach((f, j) => {
+    const pick = S.fq[j] || '', ok = pick === f.name || (f.name === 'Wind push' && pick === 'Thrust');
+    if (ok) right++;
+    $('#fqr' + j).innerHTML = !pick ? '' : ok ? `${ICON.ok}<span class="yes">Correct</span>` : `${ICON.no}<span class="no">Try again</span>`;
+  });
+  $('#fqScore').textContent = `${right} of ${F.length} correct` + (right === F.length ? '. Great job!' : '.');
+}
+function massGrams(i) {
+  const o = parseFloat(S.massReal[i]);
+  return S.real && o > 0 ? o : Math.round(simMass(S, i));
+}
+function scaleSVG(i) {
+  return `<svg viewBox="0 0 220 150" role="img" aria-label="Kitchen scale showing ${massGrams(i)} grams">
+    <g transform="translate(55 78)">${vehicleArt(S, i, 110, 'sc' + i)}</g>
+    <rect x="20" y="80" width="180" height="10" rx="4" fill="#adb5bd" stroke="#16213a" stroke-width="2"/>
+    <rect x="35" y="90" width="150" height="50" rx="10" fill="#dee2e6" stroke="#16213a" stroke-width="2"/>
+    <rect x="65" y="100" width="90" height="30" rx="5" fill="#1e2a22"/>
+    <text x="148" y="122" text-anchor="end" font-family="var(--f-mono)" font-weight="700" font-size="19" fill="#7CFC9A">${massGrams(i)} g</text></svg>`;
+}
+function renderMass() {
+  $('#massBox').innerHTML = [0, 1].map(i => `<div><span class="dtag d${i + 1}">${esc(dname(i))}</span><div class="svgbox" style="max-width:260px;margin-top:6px">${scaleSVG(i)}</div>${chkUI('kg' + i, 'Your answer: mass in kilograms', 'kg')}</div>`).join('');
+}
+
+// ===== Data =====
+function rows(i) {
+  if (S.real) return S.realTrials[i].map(r => ({ d: r.d === '' ? +S.track : parseFloat(r.d), t: parseFloat(r.t), o: r.o || '', d10: null }));
+  return SIM[i].map((r, k) => ({ d: r2(r.dist), t: r2(r.time), o: (S.obs[i] && S.obs[i][k]) || '', d10: r2(r.d10) }));
+}
+function dataFor(i) {
+  const R = rows(i).filter(r => r.d > 0 && r.t > 0), n = R.length;
+  const avgD = n ? R.reduce((s, r) => s + r.d, 0) / n : NaN, avgT = n ? R.reduce((s, r) => s + r.t, 0) / n : NaN;
+  const speed = r2(avgD / avgT), m = r3(massKg(S, i));
+  const KE = +sig(0.5 * m * speed * speed, 3), P = KE / r2(avgT);
+  const fin = R.filter(r => r.d >= +S.track - 0.005), bestT = fin.length ? Math.min(...fin.map(r => r.t)) : NaN;
+  const sim10 = R.filter(r => r.d10 != null).map(r => r.d10), rv = parseFloat(S.real10[i]);
+  const best10 = sim10.length ? r2(Math.max(...sim10)) : (rv > 0 ? r2(rv) : NaN);
+  return { n, R, avgD: r2(avgD), avgT: r2(avgT), speed, m, KE, P: +sig(P, 3), best10, bestT, dnf: R.length - fin.length, bestD: n ? Math.max(...R.map(r => r.d)) : NaN, A: area(S.d[i]) };
+}
+
+// ===== Race =====
+function renderTrials() {
+  const real = S.real;
+  $('#realToggle').checked = real;
+  $('#realNote').textContent = real
+    ? `Type the time (seconds) each design took to travel the ${S.track} m test distance, and what you noticed. If one stopped early, type the distance it reached. Add the mass you measured and how far each design got in 10 seconds.`
+    : 'Copy these measurements into your report, and write what you noticed in each trial. Tested your real model? Tick the box above and type in your own data.';
+  $('#massInputs').innerHTML = real ? [0, 1].map(i => `<label class="f"><span><span class="dtag d${i + 1}">${esc(dname(i))}</span> mass on the scale <span class="unit">(g)</span></span><input id="mass${i}" type="number" step="1" min="0" value="${esc(S.massReal[i])}" data-mass="${i}"></label>`).join('') +
+    [0, 1].map(i => `<label class="f"><span><span class="dtag d${i + 1}">${esc(dname(i))}</span> farthest distance reached within 10 s <span class="unit">(m)</span></span><input id="r10${i}" type="number" step="0.01" min="0" value="${esc(S.real10[i])}" data-r10="${i}"></label>`).join('') : '';
+  $('#trialTables').innerHTML = [0, 1].map(i => {
+    const R = real ? S.realTrials[i] : rows(i);
+    return `<div class="tscroll"><div class="sub" style="margin-top:0"><span class="dtag d${i + 1}">Experiment ${i + 1}: ${esc(dname(i))}</span></div>
+    <table class="t"><thead><tr><th>Trial</th><th>Distance traveled (m)</th><th>Time taken (s)</th><th>Observations</th>${real ? '' : '<th>Distance reached after 10 s (m)</th>'}</tr></thead><tbody>
+    ${R.map((r, k) => real
+      ? `<tr><th>Trial ${k + 1}</th><td class="cell"><input id="td${i}${k}" type="number" step="0.01" min="0" placeholder="${S.track}" value="${esc(r.d)}" data-trial="${i}:${k}:d"></td><td class="cell"><input id="tt${i}${k}" type="number" step="0.01" min="0" value="${esc(r.t)}" data-trial="${i}:${k}:t"></td><td class="cell"><input id="to${i}${k}" class="obs" type="text" value="${esc(r.o)}" data-trial="${i}:${k}:o"></td></tr>`
+      : `<tr><th>Trial ${k + 1}</th><td class="n">${f2(r.d)}</td><td class="n">${f2(r.t)}</td><td class="cell"><input id="ob${i}${k}" class="obs" type="text" placeholder="What did you notice?" value="${esc(r.o)}" data-obs="${i}:${k}"></td><td class="n">${f2(r.d10)}</td></tr>`).join('')}
+    </tbody></table></div>`;
+  }).join('');
+}
+$('#suggestBtn').addEventListener('click', () => { S.track = suggestCourse(); changed(); toast(`Test distance set to ${S.track} m`); });
+$('#realToggle').addEventListener('change', e => { S.real = e.target.checked; save(); renderTrials(); renderDerived(); updateProgress(); });
+
+function laneSVG(i) {
+  const plane = S.vehicle === 'plane', boat = S.vehicle === 'boat', Lc = +S.track, L = Math.max(Lc * 1.12, ...SIM.flat().map(r => r.xEnd * 1.04));
+  const W = 1000, H = plane ? 300 : 185, x0 = 80, x1 = W - 60, gy = plane ? H - 46 : H - 50, sx = (x1 - x0) / L;
+  const col = `var(--d${i + 1})`, id = 'L' + i;
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Race lane for design ${i + 1}">${sceneDefs(id)}`;
+  s += `<rect width="${W}" height="${H}" fill="var(--wall)"/>`;
+  if (plane) {
+    s += `<rect width="${W}" height="${gy}" fill="var(--skyScene)"/>`;
+    for (let w = 0; w < 4; w++) s += `<rect x="${130 + w * 220}" y="60" width="120" height="70" rx="6" fill="var(--paper)" opacity=".55"/>`;
+    s += `<rect y="${gy}" width="${W}" height="${H - gy}" fill="url(#tiles${id})"/><line x1="0" y1="${gy}" x2="${W}" y2="${gy}" stroke="var(--ink)" stroke-width="2"/>`;
+  } else if (boat) {
+    s += `<rect y="${gy - 14}" width="${W}" height="${H - gy + 14}" fill="var(--water1)"/><g class="wave"><path d="M0 ${gy - 14} ${Array.from({ length: 54 }, () => 'q10 -6 20 0').join(' ')}" fill="none" stroke="var(--water2)" stroke-width="3"/></g>`;
+  } else {
+    s += `<rect y="${gy}" width="${W}" height="${H - gy}" fill="url(#tiles${id})"/><line x1="0" y1="${gy}" x2="${W}" y2="${gy}" stroke="var(--ink)" stroke-width="2"/>`;
+  }
+  if (S.energy === 'wind') s += `<g transform="translate(${x0 - 48} ${gy - 70})"><rect x="-4" y="22" width="8" height="${boat ? 40 : 48}" fill="#16213a"/><circle r="26" fill="#ffffff" stroke="#16213a" stroke-width="3"/><g id="fan${i}"><path d="M0 0 L-7 -22 L7 -22 Z M0 0 L22 5 L15 17 Z M0 0 L-22 5 L-15 17 Z" fill="#1c7ed6"/></g><circle r="4" fill="#16213a"/></g>`;
+  if (S.energy === 'solar') s += `<circle cx="${W - 120}" cy="${plane ? 40 : 42}" r="24" fill="var(--sun)" opacity="${S.sun === 'cloudy' ? .45 : S.sun === 'hazy' ? .75 : 1}"/>`;
+  const stepM = L > 12 ? 2 : L > 6 ? 1 : L > 2.5 ? 0.5 : 0.25;
+  for (let m = 0; m <= L + 1e-9; m += stepM) {
+    const X = x0 + m * sx, base = boat ? gy + 6 : gy;
+    s += `<line x1="${X}" y1="${base}" x2="${X}" y2="${base + 9}" stroke="var(--ink)" stroke-width="2"/><text x="${X}" y="${base + 28}" text-anchor="middle" font-family="var(--f-mono)" font-weight="700" font-size="${m % 1 ? 13 : 16}" fill="var(--ink)">${m} m</text>`;
+  }
+  s += `<rect x="${x0 - 5}" y="${gy - 44}" width="10" height="44" fill="url(#check${id})" stroke="#16213a" stroke-width="1"/>`;
+  s += `<g transform="translate(${x0 + Lc * sx} ${gy})"><rect x="-3" y="-120" width="6" height="120" fill="var(--ink)"/><path d="M3 -120 h40 l-10 14 l10 14 h-40 Z" fill="url(#check${id})" stroke="#16213a"/></g>`;
+  if (plane) { const sy = (gy - 30) / 3; s += `<line x1="${x0}" y1="${gy - 1.5 * sy}" x2="${x1}" y2="${gy - 1.5 * sy}" stroke="var(--ink)" stroke-dasharray="3 6" opacity=".35"/><text x="${x0 - 10}" y="${gy - 1.5 * sy + 4}" text-anchor="end" font-family="var(--f-mono)" font-size="13" fill="var(--muted)">1.5 m</text><polyline id="trace${i}" fill="none" stroke="${col}" stroke-width="3" stroke-dasharray="7 6" points=""/>`; }
+  else s += `<line id="trail${i}" x1="${x0}" y1="${gy - 3}" x2="${x0}" y2="${gy - 3}" stroke="${col}" stroke-width="7" stroke-linecap="round" opacity=".55"/>`;
+  const label = `Design ${i + 1}${S.names[i] ? ' · ' + esc(S.names[i]) : ''}`;
+  s += `<rect x="12" y="12" width="${label.length * 10.5 + 34}" height="36" rx="18" fill="${col}"/><text x="29" y="36" font-family="var(--f-display)" font-weight="800" font-size="20" fill="#fff">${label}</text>`;
+  const vpx = plane ? 120 : 130;
+  s += `<g id="veh${i}" data-gy="${gy}" data-x0="${x0}" data-sx="${sx}" data-sy="${plane ? (gy - 30) / 3 : 0}"><g transform="translate(${plane ? -vpx * 0.55 : -vpx - 4} ${plane ? planeLift(vpx) : 0})">${vehicleArt(S, i, vpx, 'r' + i)}</g></g>`;
+  return s + '</svg>';
+}
+function planeLift(px) {
+  const k = px / S.body.L, H = Math.max(7, Math.min(px * 0.42, S.body.H * k)), fh = Math.max(H, px * 0.07);
+  return fh + px * 0.12 - fh / 2;
+}
+function renderTrack() {
+  const plane = S.vehicle === 'plane';
+  $('#raceTitle').textContent = `${S.track} m race to the finish line`;
+  $('#trackLead').textContent = `Both designs travel the same ${S.track} m (a control variable). We time how long each one takes to reach the finish line.` + (plane ? ' Planes are launched by hand from 1.5 m high.' : S.energy === 'wind' ? ' The fan sits at the start line.' : '');
+  $('#track').innerHTML = [0, 1].map(i => `<div class="lane">${laneSVG(i)}</div>`).join('') + `<div class="overlay" id="countdown"></div>`;
+  $('#trialPick').innerHTML = [0, 1, 2].map(k => `<button class="btn ghost sm" type="button" data-play="${k}" aria-pressed="${curTrial === k}">Replay trial ${k + 1}</button>`).join('');
+  placeAt(curTrial, Infinity); renderDNF();
+}
+let anim = null, curTrial = 0, raceToken = 0;
+function placeAt(k, tNow) {
+  for (let i = 0; i < 2; i++) {
+    const r = SIM[i][k], g = document.getElementById('veh' + i); if (!r || !g) continue;
+    const gy = +g.dataset.gy, x0 = +g.dataset.x0, sx = +g.dataset.sx, sy = +g.dataset.sy;
+    let smp = r.samples[r.samples.length - 1];
+    if (tNow < r.tEnd) { for (const s of r.samples) { if (s[0] > tNow) break; smp = s; } }
+    const X = x0 + smp[1] * sx, Y = gy - (smp[2] || 0) * sy;
+    g.setAttribute('transform', `translate(${X} ${Y})`);
+    const tr = document.getElementById('trail' + i); if (tr) tr.setAttribute('x2', X);
+    const pl = document.getElementById('trace' + i);
+    if (pl) pl.setAttribute('points', r.samples.filter(s => s[0] <= Math.min(tNow, r.tEnd)).filter((_, j) => j % 2 === 0).map(s => `${x0 + s[1] * sx},${gy - s[2] * sy}`).join(' '));
+    const left = smp[4] == null ? 1 : smp[4], tt = Math.min(tNow, r.tEnd);
+    const deg = smp[1] * sx / 13 * 57.3;
+    ['w1', 'w2'].forEach(w => { const el = document.getElementById('r' + i + w); if (el) el.setAttribute('transform', `rotate(${deg.toFixed(1)})`); });
+    const bal = document.getElementById('r' + i + 'bal'); if (bal) bal.setAttribute('transform', `scale(${(0.3 + 0.7 * left).toFixed(3)})`);
+    const arm = document.getElementById('r' + i + 'arm'); if (arm) arm.setAttribute('transform', `rotate(${((1 - left) * 100).toFixed(1)})`);
+    const prop = document.getElementById('r' + i + 'prop');
+    if (prop) { const spin = (S.energy === 'solar' || left > 0) && tNow < r.tEnd; prop.setAttribute('transform', `scale(1 ${spin ? Math.cos(tt * 40).toFixed(2) : 1})`); }
+    const fan = document.getElementById('fan' + i); if (fan) fan.setAttribute('transform', `rotate(${((tNow === Infinity ? 0 : tt) * 900 % 360).toFixed(0)})`);
+    const crossed = r.reason === 'end' && tNow >= r.time, el = document.getElementById('gauge' + i);
+    const status = crossed ? `finished in ${f2(r.time)} s` : tNow >= r.tEnd ? 'stopped before the line' : '';
+    if (el) el.innerHTML = `<span class="lbl">${esc(shortName(i))}</span><span class="v">${Math.min(tNow, r.tEnd).toFixed(1)}<small>s</small></span><span class="v">${smp[1].toFixed(2)}<small>m</small></span>${status ? `<span class="v"><small>${status}</small></span>` : ''}`;
+  }
+}
+function showWinner(k, party) {
+  const a = SIM[0][k], b = SIM[1][k], fa = a.reason === 'end', fb = b.reason === 'end';
+  let w, why;
+  if (fa && fb) { w = a.time <= b.time ? 0 : 1; why = `It crossed the ${S.track} m line in ${f2(SIM[w][k].time)} s. ${shortName(1 - w)} took ${f2(SIM[1 - w][k].time)} s.`; }
+  else if (fa || fb) { w = fa ? 0 : 1; why = `It reached the finish line in ${f2(SIM[w][k].time)} s. ${shortName(1 - w)} stopped at ${f2(SIM[1 - w][k].dist)} m.`; }
+  else { w = a.dist >= b.dist ? 0 : 1; why = `Neither design reached the finish line. Try a shorter test distance.`; }
+  $('#winner').innerHTML = `<div class="winner">${ICON.flag}<div>Trial ${k + 1}: ${esc(dname(w))} wins!<br><span>${esc(why)}</span></div></div>`;
+  if (party) confetti(w);
+}
+function renderDNF() {
+  const bad = [0, 1].filter(i => SIM[i].some(r => r.reason !== 'end'));
+  $('#dnf').innerHTML = bad.length && !S.real ? `<div class="warnbox">${bad.map(i => esc(shortName(i))).join(' and ')} stopped before the finish line in some trials. For a fair test both designs should finish. Press <b>Suggest a distance</b> on the Build page, or make the test distance shorter.</div>` : '';
+}
+function suggestCourse() {
+  const T = clone(S); T.track = 500; let mn = Infinity;
+  for (let i = 0; i < 2; i++) for (let k = 0; k < 3; k++) mn = Math.min(mn, simulate(T, i, rngFrom(S.seed + k * 977)).d10);
+  return Math.min(10, Math.max(0.5, Math.floor(mn * 0.75 * 2) / 2));
+}
+function confetti(w) {
+  if (reduceMotion()) return;
+  const cols = [S.paint[w], '#ffcb2f', '#4dabf7', '#ff8547', '#5bd178'];
+  for (let j = 0; j < 36; j++) {
+    const c = document.createElement('div'); c.className = 'confetti';
+    c.style.left = (Math.random() * 100) + 'vw'; c.style.background = cols[j % cols.length];
+    c.style.animationDelay = (Math.random() * 0.4) + 's'; c.style.animationDuration = (1.4 + Math.random()) + 's';
+    document.body.appendChild(c); setTimeout(() => c.remove(), 2800);
+  }
+}
+function race(k, countdown) {
+  curTrial = k; if (anim) cancelAnimationFrame(anim);
+  const token = ++raceToken;
+  document.querySelectorAll('[data-play]').forEach(b => b.setAttribute('aria-pressed', +b.dataset.play === k));
+  $('#gauges').innerHTML = `<div class="gauge d1" id="gauge0"></div><div class="gauge d2" id="gauge1"></div>`;
+  $('#winner').innerHTML = '';
+  if (reduceMotion() || $('#p-test').hidden) { placeAt(k, Infinity); showWinner(k, false); return; }
+  placeAt(k, 0);
+  const go = () => {
+    if (token !== raceToken) return;
+    const speed = +$('#in-pb').value, T = Math.max(SIM[0][k].tEnd, SIM[1][k].tEnd), t0 = performance.now();
+    const step = now => { if (token !== raceToken) return; const t = (now - t0) / 1000 * speed; placeAt(k, t); if (t < T) anim = requestAnimationFrame(step); else showWinner(k, true); };
+    anim = requestAnimationFrame(step);
+  };
+  if (!countdown) return go();
+  const cd = $('#countdown'); const seq = ['3', '2', '1', 'GO!']; let j = 0;
+  const tick = () => { if (token !== raceToken) return; if (j < seq.length) { cd.innerHTML = `<div class="count" style="${seq[j] === 'GO!' ? 'color:var(--good)' : ''}">${seq[j]}</div>`; j++; setTimeout(tick, 550); } else { cd.innerHTML = ''; go(); } };
+  tick();
+}
+$('#runBtn').addEventListener('click', () => {
+  S.seed = (Math.random() * 1e9) | 0; S.raced = true; S.obs = [['', '', ''], ['', '', '']]; save(); recompute(); renderTrials(); renderDerived(); renderTrack(); race(0, true); updateProgress();
+  if (S.real) toast('New simulator race ready. Your typed data is unchanged.');
+});
+
+// ===== Results =====
+function barGraph(vals, yLabel, fmt) {
+  const W = 420, H = 320, x0 = 64, y0 = 270, top = 52, x1 = 400;
+  const max = Math.max(...vals.filter(isFinite), 0);
+  const raw = max > 0 ? max * 1.1 / 4 : 0.25, pw = Math.pow(10, Math.floor(Math.log10(raw)));
+  const stepV = [1, 2, 2.5, 5, 10].find(n => n * pw >= raw) * pw;
+  const ticks = Math.max(1, Math.ceil(max * 1.08 / stepV)), niceMax = ticks * stepV, sy = (y0 - top) / niceMax;
+  const mid = 'ax' + yLabel.replace(/\W/g, '');
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Bar graph of ${yLabel}"><defs><marker id="${mid}" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10" fill="none" stroke="var(--ink)" stroke-width="2"/></marker></defs>`;
+  for (let j = 0; j <= ticks; j++) { const v = stepV * j, y = y0 - v * sy; s += `<line x1="${x0}" y1="${y}" x2="${x1}" y2="${y}" stroke="var(--line)"/><text x="${x0 - 6}" y="${y}" text-anchor="end" dominant-baseline="middle" font-family="var(--f-mono)" font-size="11" fill="var(--muted)">${fmt(v)}</text>`; }
+  s += `<text x="${x0 + 12}" y="26" font-family="var(--f-display)" font-weight="800" font-size="17" fill="var(--ink)">${yLabel}</text>`;
+  [0, 1].forEach(i => {
+    const v = vals[i]; if (!isFinite(v)) return;
+    const bw = 74, cx = x0 + (x1 - x0) * (i === 0 ? 0.33 : 0.67), h = v * sy;
+    s += `<rect x="${cx - bw / 2}" y="${y0 - h}" width="${bw}" height="${h}" rx="6" fill="var(--d${i + 1})"/><rect x="${cx - bw / 2}" y="${y0 - Math.min(h, 6)}" width="${bw}" height="${Math.min(h, 6)}" fill="var(--d${i + 1})"/>`;
+    s += `<text x="${cx}" y="${y0 - h - 8}" text-anchor="middle" font-family="var(--f-mono)" font-weight="700" font-size="14" fill="var(--ink)">${fmt(v)}</text>`;
+    s += `<text x="${cx}" y="${y0 + 24}" text-anchor="middle" font-family="var(--f-display)" font-weight="800" font-size="17" fill="var(--ink)">Design ${i + 1}</text>`;
+  });
+  s += `<line x1="${x0}" y1="${y0}" x2="${x0}" y2="${top - 14}" stroke="var(--ink)" stroke-width="2.5" marker-end="url(#${mid})"/><line x1="${x0}" y1="${y0}" x2="${x1 + 10}" y2="${y0}" stroke="var(--ink)" stroke-width="2.5" marker-end="url(#${mid})"/>`;
+  return s + '</svg>';
+}
+let mathSig = '';
+function renderResults() {
+  const D = [dataFor(0), dataFor(1)];
+  if (D.some(d => !d.n)) { mathSig = ''; $('#mathChecks').innerHTML = `<div class="warnbox">Fill in at least one trial (distance and time) for each design on the Race page.</div>`; return; }
+  const sigx = JSON.stringify(D.map(d => [d.R.map(r => [r.d, r.t]), d.m])) + S.track;
+  if (sigx === mathSig) return; mathSig = sigx;
+  $('#mathChecks').innerHTML = [0, 1].map(i => {
+    const d = D[i];
+    return `<div class="design d${i + 1}"><span class="dtag d${i + 1}">${esc(dname(i))}</span>
+      <div class="work" style="margin-top:10px">Your data: distance = ${S.track} m · times = ${d.R.map(r => f2(r.t) + ' s').join(', ')} · mass = ${massGrams(i)} g</div>
+      ${chkUI('avgt' + i, '1. Average time', 's')}
+      ${chkUI('spd' + i, '2. Speed = distance ÷ average time', 'm/s')}
+      ${chkUI('ke' + i, '3. Kinetic energy = ½ × mass (kg) × speed²', 'J')}
+      ${chkUI('pw' + i, '4. Power = kinetic energy ÷ average time', 'W')}</div>`;
+  }).join('');
+}
+function renderGraphs() {
+  const g = S.gb;
+  $('#gbDist').innerHTML = barGraph(g.dist.map(v => parseFloat(v)), 'Distance Travelled (m)', v => (+v.toFixed(2)).toString());
+  $('#gbPow').innerHTML = barGraph(g.pow.map(v => parseFloat(v)), 'Power Used (W)', v => String(+v.toPrecision(2)));
+}
+function renderGraphInputs() {
+  const inp = (kind, i) => `<label class="f">Design ${i + 1}<input id="gb-${kind}${i}" type="number" step="any" min="0" placeholder="?" value="${esc(S.gb[kind][i])}" data-gb="${kind}:${i}"></label>`;
+  $('#gbDistIn').innerHTML = inp('dist', 0) + inp('dist', 1);
+  $('#gbPowIn').innerHTML = inp('pow', 0) + inp('pow', 1);
+  renderGraphs();
+}
+
+// ===== Tabs & flow =====
+const TABS = ['build', 'test', 'results'];
+function updateProgress() {
+  const done = { build: area(S.d[0]) !== area(S.d[1]), test: S.raced || S.real, results: !!S.seen.results };
+  document.querySelectorAll('.step').forEach((b, n) => {
+    const t = b.dataset.tab, show = !!done[t] && b.getAttribute('aria-selected') !== 'true';
+    b.classList.toggle('done', show);
+    b.querySelector('.dot').innerHTML = show ? '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M5 12.5 l4.5 4.5 l9.5 -10" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg>' : String(n + 1);
+  });
+}
+function showTab(t) {
+  if (!TABS.includes(t)) t = 'build';
+  if (anim) cancelAnimationFrame(anim); raceToken++;
+  document.querySelectorAll('.step').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === t));
+  TABS.forEach(x => $('#p-' + x).hidden = x !== t);
+  if (t === 'results') { S.seen.results = true; save(); renderResults(); }
+  try { localStorage.setItem('pblVehicleTab2', t); } catch (e) { }
+  if (t === 'test') { renderTrack(); race(curTrial, false); }
+  if (t === 'build') $('#heroScene').innerHTML = heroScene();
+  updateProgress();
+  window.scrollTo({ top: 0 });
+}
+function renderDerived() { renderResults(); }
+let tmr = null;
+function changed() {
+  save(); recompute();
+  renderVehOpts(); syncInputs(); renderEditors(false); renderFixed(false); renderForces(); renderMass();
+  $('#heroScene').innerHTML = heroScene(); updateProgress();
+  clearTimeout(tmr);
+  tmr = setTimeout(() => { renderTrials(); renderDerived(); if (!$('#p-test').hidden) renderTrack(); }, 120);
+}
+
+// boot
+const fresh = (() => { try { return !localStorage.getItem('pblVehicleLab3'); } catch (e) { return true; } })();
+fixIV(); if (fresh) S.track = suggestCourse(); recompute(); renderVehOpts(); syncInputs(); renderEditors(true); renderFixed(true); renderForces(); renderMass(); renderTrials(); renderResults(); renderGraphInputs();
+$('#heroScene').innerHTML = heroScene();
+let startTab = 'build'; try { startTab = localStorage.getItem('pblVehicleTab2') || 'build'; } catch (e) { }
+if (location.hash && TABS.includes(location.hash.slice(1))) startTab = location.hash.slice(1);
+showTab(startTab);
+
+</script>
+
+</body>
+</html>
